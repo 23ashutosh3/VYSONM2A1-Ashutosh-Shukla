@@ -1,0 +1,20 @@
+{
+  "name": "vyson-m2a1-url-shortener",
+  "version": "1.0.0",
+  "description": "VYSON M2A1 - URL shortener (Express + SQLite)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --experimental-sqlite src/index.js",
+    "dev": "node --experimental-sqlite --watch src/index.js",
+    "seed": "node --experimental-sqlite scripts/seed.js",
+    "test": "node --experimental-sqlite --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

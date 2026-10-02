@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.DS_Store
+.env
+
+# The SQLite database itself IS committed (data/url_shortener.db).
+# Only the transient WAL sidecars are ignored.
+data/*.db-wal
+data/*.db-shm
