@@ -29,6 +29,36 @@ npm start
 The server starts on <http://localhost:3000>. Use a different port with
 `PORT=3001 npm start`.
 
+## Run the tests
+
+```bash
+npm test
+```
+
+No setup beyond `npm install` — the test starts the app on a free port and
+points it at a temporary SQLite database, so it never touches
+`data/url_shortener.db`.
+
+```
+✔ shortening a URL and following its code redirects to the original (37.218083ms)
+ℹ tests 1
+ℹ pass 1
+ℹ fail 0
+```
+
+### What the test covers
+
+[`test/integration.test.js`](test/integration.test.js) walks the full flow end
+to end:
+
+1. `POST /shorten` with `https://example.com`, and stores the returned
+   `short_code` in a variable.
+2. `GET /redirect?code={that code}`, and asserts the response is `302` with a
+   `Location` header pointing back at `https://example.com`.
+
+`fetch` is called with `redirect: 'manual'` so it reports the `302` instead of
+quietly following it, which is what makes the redirect itself assertable.
+
 ## Endpoints
 
 ### `POST /shorten`
@@ -98,6 +128,7 @@ conflict the insert is retried with a new code.
 ## Project layout
 
 ```
+test/integration.test.js        the integration test
 src/
   index.js                      server bootstrap, graceful shutdown
   app.js                        express app, middleware, route mounting

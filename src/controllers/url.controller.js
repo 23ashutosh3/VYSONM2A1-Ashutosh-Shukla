@@ -18,7 +18,11 @@ function parseUrl(value) {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new HttpError(400, 'Only http and https URLs can be shortened');
   }
-  return parsed.href;
+
+  // Store what the caller sent rather than parsed.href, so the redirect
+  // Location is byte-identical to the URL they shortened. parsed.href would
+  // rewrite "https://example.com" as "https://example.com/".
+  return value.trim();
 }
 
 export function shorten(req, res) {
