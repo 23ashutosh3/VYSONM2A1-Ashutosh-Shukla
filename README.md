@@ -15,8 +15,8 @@ Node.js **22 or newer** — nothing else. Express is the only runtime dependency
 the database uses Node's built-in `node:sqlite` module, so there is no native
 build step.
 
-> On Node 22 and 23 `node:sqlite` is still experimental, so the npm scripts
-> pass `--experimental-sqlite`. Node prints a one-line warning about this on
+> On Node 22 and 23 `node:sqlite` is still experimental, so the start script
+> passes `--experimental-sqlite`. Node prints a one-line warning about this on
 > startup, which is expected.
 
 ## Run it locally
@@ -28,12 +28,6 @@ npm start
 
 The server starts on <http://localhost:3000>. Use a different port with
 `PORT=3001 npm start`.
-
-```bash
-npm run dev    # restart automatically when a file changes
-npm test       # run the test suite
-npm run seed   # re-insert the sample rows (safe to run repeatedly)
-```
 
 ## Endpoints
 
@@ -52,7 +46,7 @@ curl -X POST http://localhost:3000/shorten \
   "short_code": "1Y0UyJoi",
   "short_url": "http://localhost:3000/redirect?code=1Y0UyJoi",
   "original_url": "https://nodejs.org/api/sqlite.html",
-  "created_at": "2026-10-02T17:57:25Z"
+  "created_at": "2026-10-08T17:30:31Z"
 }
 ```
 
@@ -113,7 +107,5 @@ src/
   controllers/url.controller.js request validation, responses
   models/url.model.js           SQL queries, short-code generation
   middleware/errorHandler.js    HttpError, 404 + error handlers
-scripts/seed.js                 inserts the sample rows
-test/url.test.js                test suite
 data/url_shortener.db           the committed SQLite database
 ```

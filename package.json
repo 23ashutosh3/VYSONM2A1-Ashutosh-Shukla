@@ -5,10 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node --experimental-sqlite src/index.js",
-    "dev": "node --experimental-sqlite --watch src/index.js",
-    "seed": "node --experimental-sqlite scripts/seed.js",
-    "test": "node --experimental-sqlite --test"
+    "start": "node --experimental-sqlite src/index.js"
   },
   "engines": {
     "node": ">=22"
