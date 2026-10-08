@@ -26,11 +26,9 @@ export function shorten(req, res) {
   const target = parseUrl(url ?? originalUrl);
 
   const { row, created } = Url.shorten(target);
-  const base = `${req.protocol}://${req.get('host')}`;
 
   res.status(created ? 201 : 200).json({
     short_code: row.short_code,
-    short_url: `${base}/redirect?code=${row.short_code}`,
     original_url: row.original_url,
     created_at: row.created_at,
   });

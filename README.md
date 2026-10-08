@@ -44,11 +44,12 @@ curl -X POST http://localhost:3000/shorten \
 ```json
 {
   "short_code": "1Y0UyJoi",
-  "short_url": "http://localhost:3000/redirect?code=1Y0UyJoi",
   "original_url": "https://nodejs.org/api/sqlite.html",
   "created_at": "2026-10-08T17:30:31Z"
 }
 ```
+
+Use the returned `short_code` with the redirect endpoint below.
 
 Shortening the same URL again returns the **same** code with `200 OK` rather
 than creating a duplicate row.
