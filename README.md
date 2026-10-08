@@ -66,8 +66,7 @@ than creating a duplicate row.
 curl -i "http://localhost:3000/redirect?code=mmt"
 ```
 
-Responds `302 Found` with a `Location` header pointing at the original URL, and
-increments that row's `visit_count`.
+Responds `302 Found` with a `Location` header pointing at the original URL.
 
 | Case | Status |
 | ---- | ------ |
@@ -88,7 +87,6 @@ Table `url_shortner`:
 | `original_url` | TEXT | not null |
 | `short_code` | TEXT | not null, **unique** |
 | `created_at` | TEXT | ISO-8601, defaults to now |
-| `visit_count` | INTEGER | not null, defaults to 0 |
 
 The schema is created on startup (`CREATE TABLE IF NOT EXISTS`), so the app also
 works against a missing or empty database file.

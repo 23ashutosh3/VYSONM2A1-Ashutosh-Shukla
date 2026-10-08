@@ -20,8 +20,7 @@ db.exec(`
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     original_url TEXT    NOT NULL,
     short_code   TEXT    NOT NULL UNIQUE,
-    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-    visit_count  INTEGER NOT NULL DEFAULT 0
+    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
   );
 
   CREATE INDEX IF NOT EXISTS idx_url_shortner_created_at ON url_shortner (created_at);

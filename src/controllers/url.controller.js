@@ -46,6 +46,5 @@ export function redirect(req, res) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
 
-  Url.recordVisit(row.short_code);
   res.redirect(302, row.original_url);
 }

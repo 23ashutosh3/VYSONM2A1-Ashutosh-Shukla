@@ -9,9 +9,6 @@ const insertStmt = db.prepare(
 );
 const findByCodeStmt = db.prepare('SELECT * FROM url_shortner WHERE short_code = ?');
 const findByUrlStmt = db.prepare('SELECT * FROM url_shortner WHERE original_url = ? LIMIT 1');
-const bumpVisitsStmt = db.prepare(
-  'UPDATE url_shortner SET visit_count = visit_count + 1 WHERE short_code = ?',
-);
 
 function generateCode() {
   // randomBytes avoids the modulo bias of Math.random-based pickers.
@@ -51,8 +48,4 @@ export function shorten(originalUrl) {
     }
   }
   throw new Error('Could not generate a unique short code');
-}
-
-export function recordVisit(code) {
-  bumpVisitsStmt.run(code);
 }
