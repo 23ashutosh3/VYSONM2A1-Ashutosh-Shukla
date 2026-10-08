@@ -1,6 +1,6 @@
 # URL Shortener — VYSON M2A1
 
-A small URL shortener built with Express and SQLite.
+A URL shortener built with Express and SQLite.
 
 - `POST /shorten` — accepts a long URL, returns a short code
 - `GET /redirect?code={code}` — redirects to the original URL
@@ -15,9 +15,9 @@ Node.js **22 or newer** — nothing else. Express is the only runtime dependency
 the database uses Node's built-in `node:sqlite` module, so there is no native
 build step.
 
-> On Node 22 and 23, `node:sqlite` is still experimental, so the npm scripts
+> On Node 22 and 23 `node:sqlite` is still experimental, so the npm scripts
 > pass `--experimental-sqlite`. Node prints a one-line warning about this on
-> startup, which is expected. On Node 24+ the flag is harmless.
+> startup, which is expected.
 
 ## Run it locally
 
@@ -29,19 +29,15 @@ npm start
 The server starts on <http://localhost:3000>. Use a different port with
 `PORT=3001 npm start`.
 
-Other scripts:
-
 ```bash
 npm run dev    # restart automatically when a file changes
-npm test       # run the test suite (10 tests)
-npm run seed   # re-insert the seed rows (safe to run repeatedly)
+npm test       # run the test suite
+npm run seed   # re-insert the sample rows (safe to run repeatedly)
 ```
 
 ## Endpoints
 
 ### `POST /shorten`
-
-Request:
 
 ```bash
 curl -X POST http://localhost:3000/shorten \
@@ -49,7 +45,7 @@ curl -X POST http://localhost:3000/shorten \
   -d '{"url":"https://nodejs.org/api/sqlite.html"}'
 ```
 
-Response — `201 Created`:
+`201 Created`:
 
 ```json
 {
@@ -62,8 +58,6 @@ Response — `201 Created`:
 
 Shortening the same URL again returns the **same** code with `200 OK` rather
 than creating a duplicate row.
-
-Errors:
 
 | Case | Status |
 | ---- | ------ |
@@ -86,10 +80,8 @@ increments that row's `visit_count`.
 | `code` query parameter missing | `400` |
 | code unknown | `404` |
 
-### Extras
-
-- `GET /health` — liveness check
-- `GET /stats` — total URLs and total visits
+Three sample rows ship with the database, so `mmt`, `W3School` and
+`Vyson-assignment` work immediately after cloning.
 
 ## Database
 
@@ -103,12 +95,12 @@ Table `url_shortner`:
 | `created_at` | TEXT | ISO-8601, defaults to now |
 | `visit_count` | INTEGER | not null, defaults to 0 |
 
-The schema is created on startup (`CREATE TABLE IF NOT EXISTS`), so the app
-works against an empty or missing database file without a migration step.
+The schema is created on startup (`CREATE TABLE IF NOT EXISTS`), so the app also
+works against a missing or empty database file.
 
 Short codes are 8 characters of base62 drawn from `crypto.randomBytes`. The
-`UNIQUE` constraint on `short_code` is the real guard against collisions — on
-the rare conflict the insert is retried with a new code.
+`UNIQUE` constraint on `short_code` is the real guard against collisions — on a
+conflict the insert is retried with a new code.
 
 ## Project layout
 
@@ -117,11 +109,11 @@ src/
   index.js                      server bootstrap, graceful shutdown
   app.js                        express app, middleware, route mounting
   db.js                         SQLite connection + schema
-  routes/index.js               route definitions
+  routes/index.js               the two routes
   controllers/url.controller.js request validation, responses
   models/url.model.js           SQL queries, short-code generation
   middleware/errorHandler.js    HttpError, 404 + error handlers
-scripts/seed.js                 inserts the seed rows
+scripts/seed.js                 inserts the sample rows
 test/url.test.js                test suite
 data/url_shortener.db           the committed SQLite database
 ```

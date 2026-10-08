@@ -12,9 +12,6 @@ const findByUrlStmt = db.prepare('SELECT * FROM url_shortner WHERE original_url 
 const bumpVisitsStmt = db.prepare(
   'UPDATE url_shortner SET visit_count = visit_count + 1 WHERE short_code = ?',
 );
-const statsStmt = db.prepare(
-  'SELECT count(*) AS total, coalesce(sum(visit_count), 0) AS visits FROM url_shortner',
-);
 
 function generateCode() {
   // randomBytes avoids the modulo bias of Math.random-based pickers.
@@ -57,8 +54,4 @@ export function shorten(originalUrl) {
 
 export function recordVisit(code) {
   bumpVisitsStmt.run(code);
-}
-
-export function stats() {
-  return statsStmt.get();
 }

@@ -10,6 +10,7 @@ const dir = mkdtempSync(join(tmpdir(), 'url-shortener-test-'));
 process.env.DATABASE_PATH = join(dir, 'test.db');
 
 const { default: app } = await import('../src/app.js');
+const { db } = await import('../src/db.js');
 
 let server;
 let base;
@@ -85,8 +86,10 @@ describe('GET /redirect', () => {
     await fetch(`${base}/redirect?code=${code}`, { redirect: 'manual' });
     await fetch(`${base}/redirect?code=${code}`, { redirect: 'manual' });
 
-    const { total_visits: visits } = await (await fetch(`${base}/stats`)).json();
-    assert.ok(visits >= 2, `expected at least 2 visits, got ${visits}`);
+    const { visit_count: visits } = db
+      .prepare('SELECT visit_count FROM url_shortner WHERE short_code = ?')
+      .get(code);
+    assert.equal(visits, 2);
   });
 
   it('returns 404 for an unknown code', async () => {

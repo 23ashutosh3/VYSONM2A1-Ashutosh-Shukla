@@ -51,8 +51,3 @@ export function redirect(req, res) {
   Url.recordVisit(row.short_code);
   res.redirect(302, row.original_url);
 }
-
-export function stats(req, res) {
-  const { total, visits } = Url.stats();
-  res.json({ total_urls: total, total_visits: visits ?? 0 });
-}
