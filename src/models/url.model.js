@@ -29,7 +29,8 @@ export function findByCode(code) {
   return findByCodeStmt.get(code) ?? null;
 }
 
-export function findByUrl(url) {
+// Internal only: shorten() uses it to keep repeat requests idempotent.
+function findByUrl(url) {
   return findByUrlStmt.get(url) ?? null;
 }
 
