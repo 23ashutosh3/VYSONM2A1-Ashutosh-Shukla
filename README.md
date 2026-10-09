@@ -15,9 +15,13 @@ Node.js **22 or newer** — nothing else. Express is the only runtime dependency
 the database uses Node's built-in `node:sqlite` module, so there is no native
 build step.
 
-> On Node 22 and 23 `node:sqlite` is still experimental, so the start script
-> passes `--experimental-sqlite`. Node prints a one-line warning about this on
+> On Node 22 and 23 `node:sqlite` is still experimental, so the npm scripts
+> pass `--experimental-sqlite`. Node prints a one-line warning about this on
 > startup, which is expected.
+>
+> Use `npm start` and `npm test` rather than calling `node src/index.js`
+> directly — without that flag the SQLite module is unavailable. (On Node 24+
+> the module is stable and the flag is a no-op.)
 
 ## Run it locally
 
