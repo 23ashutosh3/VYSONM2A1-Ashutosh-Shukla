@@ -200,3 +200,8 @@ If row is already created for original_url it will return existing code with sta
 201 => use for created
 
 
+[Q8] What happens when you try to fetch a short code that doesn’t exist? Find out which http status code would suit best here. Add this as a test as well.
+
+If not exist it will return 404 Not found
+
+Test case is added in file test.js

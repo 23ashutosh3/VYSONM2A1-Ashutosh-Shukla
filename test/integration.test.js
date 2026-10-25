@@ -78,3 +78,20 @@ test('shortening the same URL twice returns the same short code', async () => {
   assert.equal(second.short_code, first.short_code);
   assert.equal(second.original_url, randomUrl);
 });
+
+// Q8: a code that was never issued should be a 404, not a redirect or a 500.
+test('redirecting with a short code that does not exist returns 404', async () => {
+  // Codes are 8 alphanumeric characters, so one with a hyphen can never
+  // have been generated and is guaranteed to be missing.
+  const missingCode = 'no-such-';
+
+  const response = await fetch(`${baseUrl}/redirect?code=${missingCode}`, {
+    redirect: 'manual',
+  });
+
+  assert.equal(response.status, 404);
+  assert.equal(response.headers.get('location'), null);
+
+  const body = await response.json();
+  assert.equal(body.error, `No URL found for code "${missingCode}"`);
+});
