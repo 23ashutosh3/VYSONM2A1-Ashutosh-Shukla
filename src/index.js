@@ -1,5 +1,7 @@
 import app from './app.js';
-import { close, DB_PATH } from './db.js';
+// Q6: the raw-SQL connection is kept for reference; Sequelize is used instead.
+// import { close, DB_PATH } from './db.js';
+import { close, DB_PATH } from './sequelize.js';
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -19,8 +21,8 @@ server.on('error', (err) => {
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
-    server.close(() => {
-      close();
+    server.close(async () => {
+      await close();
       process.exit(0);
     });
   });

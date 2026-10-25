@@ -69,10 +69,12 @@ Stop the server (Ctrl+C) before opening the file, so every recent write is saved
 src/
   index.js                       starts the server
   app.js                         Express app setup
-  db.js                          SQLite connection and table creation
+  sequelize.js                   Sequelize (ORM) connection, used by the app
+  db.js                          raw SQLite connection (kept for reference, not used)
   routes/index.js                POST /shorten, GET /redirect
   controllers/url.controller.js  request validation and responses
-  models/url.model.js            SQL queries
+  models/url.sequelize.model.js  Sequelize model and queries, used by the app
+  models/url.model.js            raw SQL queries (kept for reference, not used)
 test/integration.test.js         integration test
 loadtest/                        load test script, results and graph script
 data/url_shortener.db            SQLite database

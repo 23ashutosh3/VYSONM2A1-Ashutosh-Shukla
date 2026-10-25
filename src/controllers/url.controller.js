@@ -1,4 +1,6 @@
-import * as Url from '../models/url.model.js';
+// Q6: the raw-SQL model is kept for reference; Sequelize is used instead.
+// import * as Url from '../models/url.model.js';
+import * as Url from '../models/url.sequelize.model.js';
 import { HttpError } from '../middleware/errorHandler.js';
 
 // Only http(s) is accepted; javascript: and data: URLs would make the
@@ -25,11 +27,13 @@ function parseUrl(value) {
   return value.trim();
 }
 
-export function shorten(req, res) {
+// async because Sequelize queries return promises. Express 5 forwards a
+// rejected promise to the error handler, so no try/catch is needed here.
+export async function shorten(req, res) {
   const { url, original_url: originalUrl } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
 
-  const { row, created } = Url.shorten(target);
+  const { row, created } = await Url.shorten(target);
 
   res.status(created ? 201 : 200).json({
     short_code: row.short_code,
@@ -38,14 +42,14 @@ export function shorten(req, res) {
   });
 }
 
-export function redirect(req, res) {
+export async function redirect(req, res) {
   const { code } = req.query;
 
   if (typeof code !== 'string' || code.trim() === '') {
     throw new HttpError(400, '"code" query parameter is required');
   }
 
-  const row = Url.findByCode(code.trim());
+  const row = await Url.findByCode(code.trim());
   if (!row) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
