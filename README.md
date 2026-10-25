@@ -63,6 +63,11 @@ sqlite3 -header -column data/url_shortener.db "SELECT * FROM url_shortner;"
 
 Stop the server (Ctrl+C) before opening the file, so every recent write is saved into the `.db` file.
 
+## Deployment (Vercel)
+
+Vercel does not keep files between requests, so the SQLite file cannot be used there. The deployed app uses a hosted **Postgres** database (Neon) through the `pg` driver instead.
+
+
 ## Project structure
 
 ```
