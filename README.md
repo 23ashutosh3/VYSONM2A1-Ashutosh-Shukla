@@ -2,36 +2,40 @@
 
 A URL shortener built with Express and SQLite.
 
-- `POST /shorten` — accepts a long URL, returns a short code
-- `GET /redirect?code={code}` — redirects to the original URL
-
-The SQLite database is committed to this repository at
-[`data/url_shortener.db`](data/url_shortener.db), so a fresh clone already has
-data to work with.
+Assignment answers, load test results and screenshots are in [solution.md](solution.md).
 
 ## Requirements
 
-Node.js **22 or newer** — nothing else. Express is the only runtime dependency;
-the database uses Node's built-in `node:sqlite` module, so there is no native
-build step.
+- Node.js **22 or newer**
 
-> On Node 22 and 23 `node:sqlite` is still experimental, so the npm scripts
-> pass `--experimental-sqlite`. Node prints a one-line warning about this on
-> startup, which is expected.
->
-> Use `npm start` and `npm test` rather than calling `node src/index.js`
-> directly — without that flag the SQLite module is unavailable. (On Node 24+
-> the module is stable and the flag is a no-op.)
-
-## Run it locally
+## Run it
 
 ```bash
+git clone <this-repo-url>
+cd VYSONM2A1-Ashutosh-Shukla
 npm install
 npm start
 ```
 
-The server starts on <http://localhost:3000>. Use a different port with
-`PORT=3001 npm start`.
+The server runs on <http://localhost:3000>. To use another port: `PORT=3001 npm start`.
+
+Always start with `npm start`, not `node src/index.js`. The npm script adds the `--experimental-sqlite` flag that Node 22 and 23 need. A one-line "ExperimentalWarning" on startup is normal.
+
+## Try it
+
+```bash
+# Shorten a URL
+curl -X POST http://localhost:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+# → {"short_code":"W1VJi5g8","original_url":"https://example.com",...}
+
+# Follow a short code
+curl -i "http://localhost:3000/redirect?code=W1VJi5g8"
+# → 302 Found, Location: https://example.com
+```
+
+These codes already exist in the database and work right after cloning: `mmt`, `W3School`, `Vyson-assignment`, `W1VJi5g8`.
 
 ## Run the tests
 
@@ -39,107 +43,37 @@ The server starts on <http://localhost:3000>. Use a different port with
 npm test
 ```
 
-No setup beyond `npm install` — the test starts the app on a free port and
-points it at a temporary SQLite database, so it never touches
-`data/url_shortener.db`.
+The test uses a temporary database, so it does not change `data/url_shortener.db`.
 
-```
-✔ shortening a URL and following its code redirects to the original (37.218083ms)
-ℹ tests 1
-ℹ pass 1
-ℹ fail 0
-```
+## Access the database
 
-### What the test covers
+The SQLite database is committed to the repo at [`data/url_shortener.db`](data/url_shortener.db), so anyone who clones it gets the data. No database server or login is needed: it is a single file.
 
-[`test/integration.test.js`](test/integration.test.js) walks the full flow end
-to end:
+The table is named `url_shortner`.
 
-1. `POST /shorten` with `https://example.com`, and stores the returned
-   `short_code` in a variable.
-2. `GET /redirect?code={that code}`, and asserts the response is `302` with a
-   `Location` header pointing back at `https://example.com`.
-
-`fetch` is called with `redirect: 'manual'` so it reports the `302` instead of
-quietly following it, which is what makes the redirect itself assertable.
-
-## Endpoints
-
-### `POST /shorten`
+**Terminal** (`sqlite3` comes with macOS. On Linux, install it with `sudo apt install sqlite3`. On Windows, download it from [sqlite.org](https://sqlite.org/download.html)):
 
 ```bash
-curl -X POST http://localhost:3000/shorten \
-  -H 'Content-Type: application/json' \
-  -d '{"url":"https://nodejs.org/api/sqlite.html"}'
+sqlite3 -header -column data/url_shortener.db "SELECT * FROM url_shortner;"
 ```
 
-`201 Created`:
+**VS Code:** install the **SQLite Viewer** extension, then click `data/url_shortener.db` in the file explorer.
 
-```json
-{
-  "short_code": "1Y0UyJoi",
-  "original_url": "https://nodejs.org/api/sqlite.html",
-  "created_at": "2026-10-08T17:30:31Z"
-}
-```
+**Desktop app:** open the file in [DB Browser for SQLite](https://sqlitebrowser.org/).
 
-Use the returned `short_code` with the redirect endpoint below.
+Stop the server (Ctrl+C) before opening the file, so every recent write is saved into the `.db` file.
 
-Shortening the same URL again returns the **same** code with `200 OK` rather
-than creating a duplicate row.
-
-| Case | Status |
-| ---- | ------ |
-| `url` missing or empty | `400` |
-| `url` not parseable | `400` |
-| scheme other than `http`/`https` | `400` |
-
-### `GET /redirect?code={code}`
-
-```bash
-curl -i "http://localhost:3000/redirect?code=mmt"
-```
-
-Responds `302 Found` with a `Location` header pointing at the original URL.
-
-| Case | Status |
-| ---- | ------ |
-| code found | `302` + `Location` |
-| `code` query parameter missing | `400` |
-| code unknown | `404` |
-
-Three sample rows ship with the database, so `mmt`, `W3School` and
-`Vyson-assignment` work immediately after cloning.
-
-## Database
-
-Table `url_shortner`:
-
-| Column | Type | Notes |
-| ------ | ---- | ----- |
-| `id` | INTEGER | primary key, autoincrement |
-| `original_url` | TEXT | not null |
-| `short_code` | TEXT | not null, **unique** |
-| `created_at` | TEXT | ISO-8601, defaults to now |
-
-The schema is created on startup (`CREATE TABLE IF NOT EXISTS`), so the app also
-works against a missing or empty database file.
-
-Short codes are 8 characters of base62 drawn from `crypto.randomBytes`. The
-`UNIQUE` constraint on `short_code` is the real guard against collisions — on a
-conflict the insert is retried with a new code.
-
-## Project layout
+## Project structure
 
 ```
-test/integration.test.js        the integration test
 src/
-  index.js                      server bootstrap, graceful shutdown
-  app.js                        express app, middleware, route mounting
-  db.js                         SQLite connection + schema
-  routes/index.js               the two routes
-  controllers/url.controller.js request validation, responses
-  models/url.model.js           SQL queries, short-code generation
-  middleware/errorHandler.js    HttpError, 404 + error handlers
-data/url_shortener.db           the committed SQLite database
+  index.js                       starts the server
+  app.js                         Express app setup
+  db.js                          SQLite connection and table creation
+  routes/index.js                POST /shorten, GET /redirect
+  controllers/url.controller.js  request validation and responses
+  models/url.model.js            SQL queries
+test/integration.test.js         integration test
+loadtest/                        load test script, results and graph script
+data/url_shortener.db            SQLite database
 ```
