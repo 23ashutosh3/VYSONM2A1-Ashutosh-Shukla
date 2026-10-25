@@ -10,6 +10,7 @@
 | Q4: Find the breaking point (10 → 5000 concurrent) | Done | [Q4 section below](#q4-finding-the-breaking-point) and [`loadtest/`](loadtest/) |
 
 Quick start:
+
 ---
 
 ## Q1: Endpoints
@@ -173,59 +174,74 @@ The red vertical lines at 1000, 2000 and 5000 mark where requests started timing
 The drop in p99 after 1000 does not mean the server recovered: requests that timed out are left out of the percentiles, so only the faster ones are counted.
 
 
+---
 
-[Q5] Usually, we don’t write raw SQL queries in the backend app. Can you find out why?
+## Q5
 
+> Usually, we don’t write raw SQL queries in the backend app. Can you find out why?
 
-1 - Security Reason : Risk of sql injection 
-        // DANGEROUS: raw SQL built with string concatenation
-        db.exec(`SELECT * FROM url_shortner WHERE short_code = '${code}'`);
-        // If code = "x'; DROP TABLE url_shortner; --", the table is deleted
+1. **Security Reason:** Risk of sql injection
 
-2 - Migrations : ORM's come with migration tools ,that track schema changes as versioned files 
+   ```js
+   // DANGEROUS: raw SQL built with string concatenation
+   db.exec(`SELECT * FROM url_shortner WHERE short_code = '${code}'`);
+   // If code = "x'; DROP TABLE url_shortner; --", the table is deleted
+   ```
 
-3 - Switching databases : SQL differs sliightly between database , SQLite , Postgres , and mysql 
-   each have  their own syntax .An ORM generates the right SQL for whichever database you use, so moving from SQLite to PostgreSQL means changing a config setting, not rewriting every query
+2. **Migrations:** ORM's come with migration tools, that track schema changes as versioned files
 
-4 - Maintainability : SQL inside strings is just text, a typo in a column name only shows up at runtime .
-                      Finding the column is easy in ORM
+3. **Switching databases:** SQL differs sliightly between database, SQLite, Postgres, and mysql each have their own syntax. An ORM generates the right SQL for whichever database you use, so moving from SQLite to PostgreSQL means changing a config setting, not rewriting every query
 
+4. **Maintainability:** SQL inside strings is just text, a typo in a column name only shows up at runtime. Finding the column is easy in ORM
 
-Q7] What happens if the same URL is sent again? Handle this case of duplicate URLs. Write a test case that generates a random URL and sends it twice to the API. The same short code should be returned.
+---
 
+## Q7
 
-Handled in code 
-If row is already created for original_url it will return existing code with status 200 else it creates code and return 201
+> What happens if the same URL is sent again? Handle this case of duplicate URLs. Write a test case that generates a random URL and sends it twice to the API. The same short code should be returned.
 
-201 => use for created
+Handled in code.
+If row is already created for `original_url` it will return existing code with status `200` else it creates code and return `201`
 
+`201` => use for created
 
-[Q8] What happens when you try to fetch a short code that doesn’t exist? Find out which http status code would suit best here. Add this as a test as well.
+---
 
-If not exist it will return 404 Not found
+## Q8
 
-Test case is added in file test.js
+> What happens when you try to fetch a short code that doesn’t exist? Find out which http status code would suit best here. Add this as a test as well.
 
+If not exist it will return `404 Not Found`
 
- What if we want to delete a short code? Add this functionality using a DELETE method. Which endpoint would suit better? /shorten or /redirect or something else? Write tests too
+Test case is added in file [`test/integration.test.js`](test/integration.test.js)
 
+---
 
-I chose /shorten. The /redirect endpoint is only for reading: users open it to get redirected to the original website. Using the same endpoint to delete rows from the table would be confusing, because /redirect is meant for GET requests.
+## Q9
 
-Short codes are created with POST /shorten, so deleting them with DELETE /shorten/:code keeps both operations in one place and makes the API easier to understand.
+> What if we want to delete a short code? Add this functionality using a DELETE method. Which endpoint would suit better? /shorten or /redirect or something else? Write tests too
 
+I chose `/shorten`. The `/redirect` endpoint is only for reading: users open it to get redirected to the original website. Using the same endpoint to delete rows from the table would be confusing, because `/redirect` is meant for `GET` requests.
 
+Short codes are created with `POST /shorten`, so deleting them with `DELETE /shorten/:code` keeps both operations in one place and makes the API easier to understand.
 
- [Q10 BONUS] Can you think of other test cases that you can add?
+---
 
- Added 3 test cases 
- Shortening without a URL returns 400: for {}, an empty string, only spaces, or a number.
-Shortening a non-http(s) URL returns 400: javascript:, data: and ftp: are rejected. This one matters for security, because javascript: would run script in the visitor's browser when they're redirected.
-Different URLs get different short codes.
+## Q10 (Bonus)
 
+> Can you think of other test cases that you can add?
 
-[Q11 BONUS] Should we allow editing once a short code is created? e.g. If “abc” points to “http://example-one.com”, should we allow changing it to point to “http://example-two.com”?
+Added 3 test cases:
 
+- **Shortening without a URL returns `400`:** for `{}`, an empty string, only spaces, or a number.
+- **Shortening a non-http(s) URL returns `400`:** `javascript:`, `data:` and `ftp:` are rejected. This one matters for security, because `javascript:` would run script in the visitor's browser when they're redirected.
+- **Different URLs get different short codes.**
+
+---
+
+## Q11 (Bonus)
+
+> Should we allow editing once a short code is created? e.g. If “abc” points to “http://example-one.com”, should we allow changing it to point to “http://example-two.com”?
 
 No, I do not think so. Every URL should have its own code.
 

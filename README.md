@@ -2,7 +2,7 @@
 
 A URL shortener built with Express and SQLite.
 
-Assignment answers, load test results and screenshots are in [solution.md](solution.md).
+## Answers to all the assignment questions, load test results and screenshots are in [solution.md](solution.md).
 
 ## Requirements
 
