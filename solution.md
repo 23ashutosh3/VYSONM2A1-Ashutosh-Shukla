@@ -216,4 +216,21 @@ Short codes are created with POST /shorten, so deleting them with DELETE /shorte
 
 
 
- 
+ [Q10 BONUS] Can you think of other test cases that you can add?
+
+ Added 3 test cases 
+ Shortening without a URL returns 400: for {}, an empty string, only spaces, or a number.
+Shortening a non-http(s) URL returns 400: javascript:, data: and ftp: are rejected. This one matters for security, because javascript: would run script in the visitor's browser when they're redirected.
+Different URLs get different short codes.
+
+
+[Q11 BONUS] Should we allow editing once a short code is created? e.g. If “abc” points to “http://example-one.com”, should we allow changing it to point to “http://example-two.com”?
+
+
+No, I do not think so. Every URL should have its own code.
+
+We should not allow editing after a code has been created, because the link may already have been shared in many places. Allowing the URL to be edited would make links less reliable for users.
+
+Once a code is shared, users expect it to always point to the same URL.
+
+With the columns we currently have, a better option is to delete that row and add a new row with a new code and URL.

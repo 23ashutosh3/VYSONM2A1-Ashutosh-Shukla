@@ -138,3 +138,41 @@ test('deleting a short code that does not exist returns 404', async () => {
   const body = await response.json();
   assert.equal(body.error, `No URL found for code "${missingCode}"`);
 });
+
+// Q10: further edge cases.
+
+function postShorten(body) {
+  return fetch(`${baseUrl}/shorten`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function randomUrl() {
+  return `https://example.com/${randomBytes(8).toString('hex')}`;
+}
+
+test('shortening without a url returns 400', async () => {
+  for (const body of [{}, { url: '' }, { url: '   ' }, { url: 123 }]) {
+    const response = await postShorten(body);
+    assert.equal(response.status, 400, `body ${JSON.stringify(body)}`);
+    assert.equal((await response.json()).error, '"url" is required');
+  }
+});
+
+test('shortening a non-http(s) URL returns 400', async () => {
+  // javascript: and data: would run script in the visitor's browser on redirect.
+  for (const url of ['javascript:alert(1)', 'data:text/html,hi', 'ftp://example.com']) {
+    const response = await postShorten({ url });
+    assert.equal(response.status, 400, url);
+    assert.equal((await response.json()).error, 'Only http and https URLs can be shortened');
+  }
+});
+
+test('different URLs get different short codes', async () => {
+  const first = await (await postShorten({ url: randomUrl() })).json();
+  const second = await (await postShorten({ url: randomUrl() })).json();
+
+  assert.notEqual(first.short_code, second.short_code);
+});
