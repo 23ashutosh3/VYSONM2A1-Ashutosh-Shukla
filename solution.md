@@ -250,3 +250,6 @@ We should not allow editing after a code has been created, because the link may 
 Once a code is shared, users expect it to always point to the same URL.
 
 With the columns we currently have, a better option is to delete that row and add a new row with a new code and URL.
+
+
+## [Q12 BONUS] Deploy the API online. You can use Vercel, Netlify, Cloudflare, Heroku, Render, etc. See how the response times change.
