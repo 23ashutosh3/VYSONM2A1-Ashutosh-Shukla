@@ -205,3 +205,15 @@ If row is already created for original_url it will return existing code with sta
 If not exist it will return 404 Not found
 
 Test case is added in file test.js
+
+
+ What if we want to delete a short code? Add this functionality using a DELETE method. Which endpoint would suit better? /shorten or /redirect or something else? Write tests too
+
+
+I chose /shorten. The /redirect endpoint is only for reading: users open it to get redirected to the original website. Using the same endpoint to delete rows from the table would be confusing, because /redirect is meant for GET requests.
+
+Short codes are created with POST /shorten, so deleting them with DELETE /shorten/:code keeps both operations in one place and makes the API easier to understand.
+
+
+
+ 

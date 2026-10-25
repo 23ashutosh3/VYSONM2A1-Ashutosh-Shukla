@@ -56,3 +56,16 @@ export async function redirect(req, res) {
 
   res.redirect(302, row.original_url);
 }
+
+// Named remove because delete is a reserved word in JavaScript.
+export async function remove(req, res) {
+  const { code } = req.params;
+
+  const deleted = await Url.deleteByCode(code);
+  if (!deleted) {
+    throw new HttpError(404, `No URL found for code "${code}"`);
+  }
+
+  // 204: the delete worked and there is nothing left to send back.
+  res.status(204).end();
+}

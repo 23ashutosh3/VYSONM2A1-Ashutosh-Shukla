@@ -60,6 +60,12 @@ export async function findByCode(code) {
   return row ?? null;
 }
 
+// Returns true if a row was removed, false if the code did not exist.
+export async function deleteByCode(code) {
+  const count = await Url.destroy({ where: { short_code: code } });
+  return count > 0;
+}
+
 /**
  * Stores the URL and returns its row. The same URL always maps back to the
  * code it was first given, so repeat calls stay idempotent.

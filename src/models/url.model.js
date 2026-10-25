@@ -9,6 +9,7 @@ const insertStmt = db.prepare(
 );
 const findByCodeStmt = db.prepare('SELECT * FROM url_shortner WHERE short_code = ?');
 const findByUrlStmt = db.prepare('SELECT * FROM url_shortner WHERE original_url = ? LIMIT 1');
+const deleteByCodeStmt = db.prepare('DELETE FROM url_shortner WHERE short_code = ?');
 
 function generateCode() {
   // randomBytes avoids the modulo bias of Math.random-based pickers.
@@ -24,6 +25,11 @@ function isUniqueViolation(err) {
 
 export function findByCode(code) {
   return findByCodeStmt.get(code) ?? null;
+}
+
+// Returns true if a row was removed, false if the code did not exist.
+export function deleteByCode(code) {
+  return deleteByCodeStmt.run(code).changes > 0;
 }
 
 // Internal only: shorten() uses it to keep repeat requests idempotent.

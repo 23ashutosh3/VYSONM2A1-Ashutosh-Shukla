@@ -95,3 +95,46 @@ test('redirecting with a short code that does not exist returns 404', async () =
   const body = await response.json();
   assert.equal(body.error, `No URL found for code "${missingCode}"`);
 });
+
+// Q9: DELETE /shorten/:code removes a code so it no longer redirects.
+test('deleting a short code removes it', async () => {
+  const url = `https://example.com/${randomBytes(8).toString('hex')}`;
+
+  const shortenResponse = await fetch(`${baseUrl}/shorten`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  assert.equal(shortenResponse.status, 201);
+  const { short_code: shortCode } = await shortenResponse.json();
+
+  // 1. Delete it: 204 with an empty body.
+  const deleteResponse = await fetch(`${baseUrl}/shorten/${shortCode}`, { method: 'DELETE' });
+  assert.equal(deleteResponse.status, 204);
+  assert.equal(await deleteResponse.text(), '');
+
+  // 2. The code no longer redirects.
+  const redirectResponse = await fetch(`${baseUrl}/redirect?code=${shortCode}`, {
+    redirect: 'manual',
+  });
+  assert.equal(redirectResponse.status, 404);
+
+  // 3. Shortening the same URL again creates a fresh row instead of
+  //    returning the deleted one.
+  const reshortenResponse = await fetch(`${baseUrl}/shorten`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  assert.equal(reshortenResponse.status, 201);
+});
+
+test('deleting a short code that does not exist returns 404', async () => {
+  const missingCode = 'no-such-';
+
+  const response = await fetch(`${baseUrl}/shorten/${missingCode}`, { method: 'DELETE' });
+
+  assert.equal(response.status, 404);
+  const body = await response.json();
+  assert.equal(body.error, `No URL found for code "${missingCode}"`);
+});

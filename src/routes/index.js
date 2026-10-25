@@ -5,5 +5,6 @@ const router = Router();
 
 router.post('/shorten', controller.shorten);
 router.get('/redirect', controller.redirect);
+router.delete('/shorten/:code', controller.remove);
 
 export default router;
