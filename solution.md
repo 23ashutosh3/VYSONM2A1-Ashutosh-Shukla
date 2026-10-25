@@ -191,3 +191,12 @@ The drop in p99 after 1000 does not mean the server recovered: requests that tim
                       Finding the column is easy in ORM
 
 
+Q7] What happens if the same URL is sent again? Handle this case of duplicate URLs. Write a test case that generates a random URL and sends it twice to the API. The same short code should be returned.
+
+
+Handled in code 
+If row is already created for original_url it will return existing code with status 200 else it creates code and return 201
+
+201 => use for created
+
+
