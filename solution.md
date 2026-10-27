@@ -2,12 +2,12 @@
 
 **Stack:** Node.js 22+, Express 5, SQLite (built-in `node:sqlite`)
 
-| Question | Status | Where to look |
-| -------- | ------ | ------------- |
-| Q1: `POST /shorten` and `GET /redirect` | Done | [`src/`](src/) |
-| Q2: Integration test | Done, passing | [`test/integration.test.js`](test/integration.test.js) |
-| Q3: Load test (10 concurrent requests) | Done | [Q3 section below](#q3-load-test) and [`screenshots/`](screenshots/) |
-| Q4: Find the breaking point (10 → 5000 concurrent) | Done | [Q4 section below](#q4-finding-the-breaking-point) and [`loadtest/`](loadtest/) |
+| Question                                           | Status        | Where to look                                                                   |
+| -------------------------------------------------- | ------------- | ------------------------------------------------------------------------------- |
+| Q1: `POST /shorten` and `GET /redirect`            | Done          | [`src/`](src/)                                                                  |
+| Q2: Integration test                               | Done, passing | [`test/integration.test.js`](test/integration.test.js)                          |
+| Q3: Load test (10 concurrent requests)             | Done          | [Q3 section below](#q3-load-test) and [`screenshots/`](screenshots/)            |
+| Q4: Find the breaking point (10 → 5000 concurrent) | Done          | [Q4 section below](#q4-finding-the-breaking-point) and [`loadtest/`](loadtest/) |
 
 Quick start:
 
@@ -16,9 +16,9 @@ Quick start:
 ## Q1: Endpoints
 
 > Create the following two endpoints:
+>
 > 1. `POST /shorten` accepts a long URL and returns a short code
 > 2. `GET /redirect?code={code}` redirects to the original URL
-
 
 ### `GET /redirect?code={code}`
 
@@ -32,12 +32,12 @@ curl -i "http://localhost:3000/redirect?code=W1VJi5g8"
 
 Database table `url_shortner`:
 
-| Column | Type | Notes |
-| ------ | ---- | ----- |
-| `id` | INTEGER | primary key, autoincrement |
-| `original_url` | TEXT | not null |
-| `short_code` | TEXT | not null, unique |
-| `created_at` | TEXT | ISO-8601, defaults to now |
+| Column         | Type    | Notes                      |
+| -------------- | ------- | -------------------------- |
+| `id`           | INTEGER | primary key, autoincrement |
+| `original_url` | TEXT    | not null                   |
+| `short_code`   | TEXT    | not null, unique           |
+| `created_at`   | TEXT    | ISO-8601, defaults to now  |
 
 ---
 
@@ -66,10 +66,10 @@ Both endpoints were tested with **[oha](https://github.com/hatoo/oha)**. Each ru
 
 ### Results
 
-| Endpoint | p50 | p90 | p95 | p99 | Success rate | Status codes |
-| -------- | --- | --- | --- | --- | ------------ | ------------ |
-| `POST /shorten` | 41.08 ms | 48.53 ms | 48.53 ms | 48.53 ms | 100% | 10 × `200` |
-| `GET /redirect` | 9.78 ms | 14.29 ms | 14.29 ms | 14.29 ms | 100% | 10 × `302` |
+| Endpoint        | p50      | p90      | p95      | p99      | Success rate | Status codes |
+| --------------- | -------- | -------- | -------- | -------- | ------------ | ------------ |
+| `POST /shorten` | 41.08 ms | 48.53 ms | 48.53 ms | 48.53 ms | 100%         | 10 × `200`   |
+| `GET /redirect` | 9.78 ms  | 14.29 ms | 14.29 ms | 14.29 ms | 100%         | 10 × `302`   |
 
 ### Commands
 
@@ -138,29 +138,29 @@ Up to 500 concurrent requests success stays at 100 with 0 errors. From 1000 upwa
 
 ### Results: `POST /shorten`
 
-| Concurrency | Requests | Success | p50 | p90 | p95 | p99 | Req/sec | Errors |
-| ----------: | -------: | ------: | --: | --: | --: | --: | ------: | -----: |
-| 10 | 100 | 100% | 1.28 ms | 14.47 ms | 22.41 ms | 26.76 ms | 2,664 | 0 |
-| 50 | 500 | 100% | 3.18 ms | 5.97 ms | 48.71 ms | 74.82 ms | 6,559 | 0 |
-| 100 | 1,000 | 100% | 3.43 ms | 7.24 ms | 116.97 ms | 124.26 ms | 7,909 | 0 |
-| 200 | 2,000 | 100% | 5.06 ms | 8.79 ms | 199.81 ms | 208.42 ms | 9,263 | 0 |
-| 500 | 5,000 | 100% | 6.73 ms | 12.65 ms | 637.83 ms | 1,141.18 ms | 2,401 | 0 |
-| **1000** | 10,000 | **97%** | 11.69 ms | 15.80 ms | 766.01 ms | 3,959.76 ms | 1,995 | **278** |
-| 2000 | 20,000 | 94% | 17.05 ms | 20.70 ms | 23.15 ms | 2,056.92 ms | 3,982 | 1,294 |
-| 5000 | 50,000 | 91% | 28.78 ms | 33.80 ms | 36.56 ms | 134.50 ms | 9,875 | 4,470 |
+| Concurrency | Requests | Success |      p50 |      p90 |       p95 |         p99 | Req/sec |  Errors |
+| ----------: | -------: | ------: | -------: | -------: | --------: | ----------: | ------: | ------: |
+|          10 |      100 |    100% |  1.28 ms | 14.47 ms |  22.41 ms |    26.76 ms |   2,664 |       0 |
+|          50 |      500 |    100% |  3.18 ms |  5.97 ms |  48.71 ms |    74.82 ms |   6,559 |       0 |
+|         100 |    1,000 |    100% |  3.43 ms |  7.24 ms | 116.97 ms |   124.26 ms |   7,909 |       0 |
+|         200 |    2,000 |    100% |  5.06 ms |  8.79 ms | 199.81 ms |   208.42 ms |   9,263 |       0 |
+|         500 |    5,000 |    100% |  6.73 ms | 12.65 ms | 637.83 ms | 1,141.18 ms |   2,401 |       0 |
+|    **1000** |   10,000 | **97%** | 11.69 ms | 15.80 ms | 766.01 ms | 3,959.76 ms |   1,995 | **278** |
+|        2000 |   20,000 |     94% | 17.05 ms | 20.70 ms |  23.15 ms | 2,056.92 ms |   3,982 |   1,294 |
+|        5000 |   50,000 |     91% | 28.78 ms | 33.80 ms |  36.56 ms |   134.50 ms |   9,875 |   4,470 |
 
 ### Results: `GET /redirect`
 
-| Concurrency | Requests | Success | p50 | p90 | p95 | p99 | Req/sec | Errors |
-| ----------: | -------: | ------: | --: | --: | --: | --: | ------: | -----: |
-| 10 | 100 | 100% | 0.66 ms | 2.88 ms | 5.00 ms | 7.06 ms | 8,402 | 0 |
-| 50 | 500 | 100% | 1.87 ms | 3.67 ms | 27.10 ms | 43.31 ms | 11,242 | 0 |
-| 100 | 1,000 | 100% | 2.97 ms | 6.34 ms | 78.56 ms | 82.74 ms | 11,814 | 0 |
-| 200 | 2,000 | 100% | 4.21 ms | 6.96 ms | 147.43 ms | 155.08 ms | 12,633 | 0 |
-| 500 | 5,000 | 100% | 5.79 ms | 11.54 ms | 581.53 ms | 1,073.08 ms | 2,468 | 0 |
-| **1000** | 10,000 | **98%** | 8.47 ms | 12.04 ms | 1,072.72 ms | 3,952.40 ms | 1,996 | **211** |
-| 2000 | 20,000 | 93% | 14.53 ms | 18.24 ms | 29.85 ms | 2,052.75 ms | 3,983 | 1,326 |
-| 5000 | 50,000 | 92% | 26.29 ms | 31.03 ms | 36.34 ms | 3,388.90 ms | 9,884 | 4,132 |
+| Concurrency | Requests | Success |      p50 |      p90 |         p95 |         p99 | Req/sec |  Errors |
+| ----------: | -------: | ------: | -------: | -------: | ----------: | ----------: | ------: | ------: |
+|          10 |      100 |    100% |  0.66 ms |  2.88 ms |     5.00 ms |     7.06 ms |   8,402 |       0 |
+|          50 |      500 |    100% |  1.87 ms |  3.67 ms |    27.10 ms |    43.31 ms |  11,242 |       0 |
+|         100 |    1,000 |    100% |  2.97 ms |  6.34 ms |    78.56 ms |    82.74 ms |  11,814 |       0 |
+|         200 |    2,000 |    100% |  4.21 ms |  6.96 ms |   147.43 ms |   155.08 ms |  12,633 |       0 |
+|         500 |    5,000 |    100% |  5.79 ms | 11.54 ms |   581.53 ms | 1,073.08 ms |   2,468 |       0 |
+|    **1000** |   10,000 | **98%** |  8.47 ms | 12.04 ms | 1,072.72 ms | 3,952.40 ms |   1,996 | **211** |
+|        2000 |   20,000 |     93% | 14.53 ms | 18.24 ms |    29.85 ms | 2,052.75 ms |   3,983 |   1,326 |
+|        5000 |   50,000 |     92% | 26.29 ms | 31.03 ms |    36.34 ms | 3,388.90 ms |   9,884 |   4,132 |
 
 ### Latency graph
 
@@ -172,7 +172,6 @@ p50 and p90 (blue and orange) stay close to zero at every level, so the typical 
 p95 and p99 (green and red) climb steadily from 200 concurrent requests and peak at 1000, where p99 reaches about 4 seconds on both endpoints.
 The red vertical lines at 1000, 2000 and 5000 mark where requests started timing out, so the server breaks at about 1000 concurrent requests.
 The drop in p99 after 1000 does not mean the server recovered: requests that timed out are left out of the percentiles, so only the faster ones are counted.
-
 
 ---
 
@@ -251,5 +250,59 @@ Once a code is shared, users expect it to always point to the same URL.
 
 With the columns we currently have, a better option is to delete that row and add a new row with a new code and URL.
 
-
 ## [Q12 BONUS] Deploy the API online. You can use Vercel, Netlify, Cloudflare, Heroku, Render, etc. See how the response times change.
+
+## [Q13 BONUS] Deploy the database to cloud, e.g. https://neon.tech/, Turso, etc. See how the response times change. Share the comparison.
+
+The database is on Neon Postgres (used by the Vercel deployment above). The comparison with local SQLite is the same as the Q12 tables: Local = Express + SQLite on my laptop, Vercel = Vercel function + Neon.
+
+Deployed on Vercel: https://vyson-url-shortener.vercel.app
+
+```bash
+node loadtest/bench.mjs http://localhost:3000 <code> loadtest/results-local-node.csv "10 50 100 200"
+node loadtest/bench.mjs https://vyson-url-shortener.vercel.app <code> loadtest/results-vercel.csv "10 50 100 200"
+```
+
+### How to read the tables
+
+- **Requests at once**: how many requests were sent at the same time.
+- **Typical time (p50)**: half the requests were faster than this.
+- **Slow time (p95)**: only the slowest 5% of requests took longer than this.
+- **Failed**: requests that took longer than 5 seconds (timed out).
+
+### Typical time (p50)
+
+| Requests at once | /shorten Local | /shorten Vercel | /redirect Local | /redirect Vercel |
+| ---------------- | -------------- | --------------- | --------------- | ---------------- |
+| 10               | 4 ms           | 348 ms          | 3 ms            | 969 ms \*        |
+| 50               | 19 ms          | 460 ms          | 13 ms           | 524 ms           |
+| 100              | 32 ms          | 1,147 ms        | 25 ms           | 1,036 ms         |
+| 200              | 58 ms          | 2,846 ms        | 49 ms           | 1,511 ms         |
+
+### Slow time (p95)
+
+| Requests at once | /shorten Local | /shorten Vercel | /redirect Local | /redirect Vercel |
+| ---------------- | -------------- | --------------- | --------------- | ---------------- |
+| 10               | 12 ms          | 777 ms          | 7 ms            | 4,846 ms \*      |
+| 50               | 47 ms          | 2,465 ms        | 31 ms           | 1,227 ms         |
+| 100              | 57 ms          | 2,797 ms        | 59 ms           | 2,645 ms         |
+| 200              | 191 ms         | 4,833 ms        | 132 ms          | 4,672 ms         |
+
+### Failed requests
+
+Locally, **0% failed** at every level. On Vercel:
+
+| Requests at once | /shorten Vercel | /redirect Vercel |
+| ---------------- | --------------- | ---------------- |
+| 10               | 0%              | 61% \*           |
+| 50               | 0%              | 0%               |
+| 100              | 30%             | 0%               |
+| 200              | 35%             | 8%               |
+
+\* This run happened right after the heavy `/shorten` runs, while Vercel was still scaling down and up again. It was not reproducible; at 50 requests at once, everything succeeded again.
+
+Throughput: about 2,000–3,500 req/s locally, but only about 25–80 req/s on Vercel.
+
+### Observations
+
+- **A single request is about 100x slower when deployed:** about 4 ms locally against 350–600 ms on Vercel. Locally there is no network, and SQLite is a file on the same machine. On Vercel every request pays for a round trip from my laptop to the Vercel region, TLS, the serverless function, and a network round trip to Neon for each SQL query.

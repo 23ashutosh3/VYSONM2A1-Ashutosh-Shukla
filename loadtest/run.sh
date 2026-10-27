@@ -4,11 +4,15 @@
 #
 # Usage (server must already be running with `npm start`):
 #   ./loadtest/run.sh <short_code>
+#
+# Q12/Q13: point it at the deployed API with a separate output file, e.g.
+#   BASE=https://my-app.vercel.app OUT=loadtest/results-vercel.csv \
+#   LEVELS="10 50 100 200" ./loadtest/run.sh <short_code>
 
 CODE=${1:?usage: ./loadtest/run.sh <short_code>}
-LEVELS="10 50 100 200 500 1000 2000 5000"
-BASE=http://localhost:3000
-OUT=loadtest/results.csv
+LEVELS=${LEVELS:-"10 50 100 200 500 1000 2000 5000"}
+BASE=${BASE:-http://localhost:3000}
+OUT=${OUT:-loadtest/results.csv}
 
 echo "endpoint,concurrency,requests,success_rate,p50_ms,p90_ms,p95_ms,p99_ms,req_per_sec,errors" > $OUT
 

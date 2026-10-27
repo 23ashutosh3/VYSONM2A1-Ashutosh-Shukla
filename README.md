@@ -67,6 +67,31 @@ Stop the server (Ctrl+C) before opening the file, so every recent write is saved
 
 Vercel does not keep files between requests, so the SQLite file cannot be used there. The deployed app uses a hosted **Postgres** database (Neon) through the `pg` driver instead.
 
+Live URL: https://vyson-url-shortener.vercel.app
+
+## Load testing
+
+The files in `loadtest/` send many requests at the same time and record how fast the API responds (p50, p90, p95 and p99 latency, requests per second, and how many requests failed).
+
+| File | What it is |
+|---|---|
+| `loadtest/run.sh` | Load test that uses the [oha](https://github.com/hatoo/oha) tool. It tests the local server by default; set `BASE`, `OUT` and `LEVELS` to test another URL. Writes `results.csv`. |
+| `loadtest/bench.mjs` | The same load test written in Node, so no extra tool is needed. Used to compare the local server with the Vercel deployment. |
+| `loadtest/results-local-node.csv` | `bench.mjs` results for the local server (Express + SQLite). |
+| `loadtest/results-vercel.csv` | `bench.mjs` results for the Vercel deployment (Vercel Function + Neon Postgres). |
+
+```bash
+# run.sh: start the server with `npm start` first
+./loadtest/run.sh <short_code>
+BASE=https://vyson-url-shortener.vercel.app OUT=loadtest/results-vercel.csv LEVELS="10 50 100" ./loadtest/run.sh <short_code>
+
+# bench.mjs: node loadtest/bench.mjs <base_url> <short_code> <output.csv> [levels]
+node loadtest/bench.mjs http://localhost:3000 <short_code> loadtest/results-local-node.csv "10 50 100 200"
+node loadtest/bench.mjs https://vyson-url-shortener.vercel.app <short_code> loadtest/results-vercel.csv "10 50 100 200"
+```
+
+Each level sends 10 requests per concurrent connection, and any request slower than 5 seconds counts as failed. The comparison and observations are in [solution.md](solution.md) (Q12 and Q13).
+
 
 ## Project structure
 
