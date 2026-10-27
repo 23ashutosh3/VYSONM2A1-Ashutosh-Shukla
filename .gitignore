@@ -7,3 +7,4 @@ node_modules/
 # Only the transient WAL sidecars are ignored.
 data/*.db-wal
 data/*.db-shm
+.claude/skills/
