@@ -1,12 +1,12 @@
 // Q6: the raw-SQL model is kept for reference; Sequelize is used instead.
 // import * as Url from '../models/url.model.js';
-import * as Url from '../models/url.sequelize.model.js';
-import { HttpError } from '../middleware/errorHandler.js';
+import * as Url from "../models/url.sequelize.model.js";
+import { HttpError } from "../middleware/errorHandler.js";
 
 // Only http(s) is accepted; javascript: and data: URLs would make the
 // redirect endpoint a vector for running script in a visitor's browser.
 function parseUrl(value) {
-  if (typeof value !== 'string' || value.trim() === '') {
+  if (typeof value !== "string" || value.trim() === "") {
     throw new HttpError(400, '"url" is required');
   }
 
@@ -17,8 +17,8 @@ function parseUrl(value) {
     throw new HttpError(400, `"${value}" is not a valid URL`);
   }
 
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new HttpError(400, 'Only http and https URLs can be shortened');
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new HttpError(400, "Only http and https URLs can be shortened");
   }
 
   // Store what the caller sent rather than parsed.href, so the redirect
@@ -45,7 +45,7 @@ export async function shorten(req, res) {
 export async function redirect(req, res) {
   const { code } = req.query;
 
-  if (typeof code !== 'string' || code.trim() === '') {
+  if (typeof code !== "string" || code.trim() === "") {
     throw new HttpError(400, '"code" query parameter is required');
   }
 

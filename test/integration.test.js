@@ -161,6 +161,12 @@ test('shortening without a url returns 400', async () => {
   }
 });
 
+test('shortening with url null returns 400', async () => {
+  const response = await postShorten({ url: null });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, '"url" is required');
+});
+
 test('shortening a non-http(s) URL returns 400', async () => {
   // javascript: and data: would run script in the visitor's browser on redirect.
   for (const url of ['javascript:alert(1)', 'data:text/html,hi', 'ftp://example.com']) {
