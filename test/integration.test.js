@@ -327,3 +327,29 @@ test('shortening with a custom code that already exists returns 409', async () =
   assert.equal(second.status, 409);
   assert.equal((await second.json()).error, `Short code "${customCode}" is not available, try another one`);
 });
+
+// Batch: POST /shorten/batch shortens many URLs and reports each one.
+test('batch shortening returns 207 and says which URLs failed and why', async () => {
+  const takenCode = `custom-${randomBytes(4).toString('hex')}`;
+  await postShorten({ url: randomUrl(), custom_code: takenCode });
+
+  const response = await fetch(`${baseUrl}/shorten/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      urls: [{ url: randomUrl() }, { url: randomUrl(), custom_code: takenCode }, { url: 'not-a-url' }],
+    }),
+  });
+  assert.equal(response.status, 207);
+
+  const body = await response.json();
+  assert.equal(body.created, 1);
+  assert.equal(body.failed, 2);
+
+  const [ok, taken, invalid] = body.results;
+  assert.equal(ok.status, 201);
+  assert.equal(taken.status, 409);
+  assert.equal(taken.error, `Short code "${takenCode}" is not available, try another one`);
+  assert.equal(invalid.status, 400);
+  assert.equal(invalid.error, '"not-a-url" is not a valid URL');
+});

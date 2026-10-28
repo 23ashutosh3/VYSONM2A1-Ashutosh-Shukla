@@ -65,6 +65,71 @@ export async function shorten(req, res) {
   });
 }
 
+const MAX_BATCH_SIZE = 100;
+
+// Batch: shortens many URLs in one request. Each item is handled on its own,
+// so one bad URL does not stop the others.
+export async function shortenBatch(req, res) {
+  const { urls } = req.body ?? {};
+
+  if (!Array.isArray(urls) || urls.length === 0) {
+    throw new HttpError(400, '"urls" must be a non-empty array');
+  }
+  if (urls.length > MAX_BATCH_SIZE) {
+    throw new HttpError(400, `At most ${MAX_BATCH_SIZE} URLs can be shortened in one request`);
+  }
+
+  const user = await User.findByApiKey(req.get("x-api-key"));
+
+  // allSettled, not all: every item finishes and reports its own result,
+  // instead of the whole batch failing on the first error.
+  const settled = await Promise.allSettled(
+    urls.map(async (item) => {
+      const target = parseUrl(item?.url);
+      const expiresAt = parseExpiresAt(item?.expires_at);
+      const row = await Url.shorten(target, user?.id ?? null, expiresAt, item?.custom_code ?? null);
+      if (!row) {
+        throw new HttpError(409, `Short code "${item.custom_code}" is not available, try another one`);
+      }
+      return row;
+    }),
+  );
+
+  // Each result says which item it is (index, url, custom_code) so the
+  // caller can see exactly which one failed and why.
+  const results = settled.map((outcome, index) => {
+    const item = { index, url: urls[index]?.url ?? null, custom_code: urls[index]?.custom_code ?? null };
+
+    if (outcome.status === "fulfilled") {
+      const row = outcome.value;
+      return {
+        ...item,
+        status: 201,
+        short_code: row.short_code,
+        created_at: row.created_at,
+        expires_at: row.expires_at,
+      };
+    }
+
+    const status = outcome.reason.status ?? 500;
+    if (status >= 500) console.error(outcome.reason);
+    return {
+      ...item,
+      status,
+      error: status >= 500 ? "Internal server error" : outcome.reason.message,
+    };
+  });
+
+  const created = results.filter((result) => result.status === 201).length;
+
+  // 201 when every URL was shortened, 207 Multi-Status when some failed.
+  res.status(created === results.length ? 201 : 207).json({
+    created,
+    failed: results.length - created,
+    results,
+  });
+}
+
 export async function redirect(req, res) {
   const { code } = req.query;
 

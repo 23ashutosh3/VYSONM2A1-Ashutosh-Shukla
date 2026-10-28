@@ -196,6 +196,16 @@ Files and functions changed:
 - `src/controllers/url.controller.js`: new `parseExpiresAt(value)`, `shorten()` reads `expires_at` from body, `redirect()` returns 410 if expired
 - `test/integration.test.js`: 2 new tests for expired and not-expired links
 
+### Screenshots
+
+Created a short code with `expires_at`, the response returns the saved expiry date.
+
+![Q8](screenshots/Q8.png)
+
+Same custom code sent again, it is rejected as not available.
+
+![q8 part 2](screenshots/q8_part2.png)
+
 
 [Q9] In the /shorten API endpoint, allow an optional parameter to set the custom code as requested by the user (e.g., user wants https://short.ly/awesome-article). Add tests as well.
 
@@ -206,3 +216,48 @@ Files and functions changed:
 - `src/models/url.sequelize.model.js`: `shorten()` now takes `customCode`, uses it instead of a random code and returns `null` if it is taken
 - `src/controllers/url.controller.js`: `shorten()` reads `custom_code` from body, returns 409 if the code is not available
 - `test/integration.test.js`: 2 new tests for a free custom code and a taken one (409)
+
+
+## Q10
+
+> [Q10] Would you handle bulk creation in the /shorten endpoint itself or create a new batch endpoint that can shorten multiple URLs in one request? Think about the pros and cons. How would error handling work in both cases? Share them along with your final choice. Implement it.
+
+### Final choice
+
+A new batch endpoint: `POST /shorten/batch`. `/shorten` stays as it is for one URL.
+
+- All URLs are shortened together with `Promise.allSettled`, so one bad URL does not stop the others.
+- Limit of **100 URLs** per request.
+
+### Pros
+
+- 100 URLs take one request instead of 100 requests, which saves network time.
+- Easier for the client.
+- One response gives the whole picture: which URLs succeeded, which failed and why.
+
+### Cons
+
+- Heavier on the server.
+- Slower individual response, the client waits for the whole batch.
+- Harder to maintain: when many users call the bulk endpoint the server can get overloaded, and if the request fails midway and is retried, duplicate records can be created, which needs handling as well.
+- Many more test cases can arise.
+
+### Error handling
+
+- **Inside `/shorten` itself:** one status code has to describe the whole request, so either one bad URL fails everything, or the same endpoint returns two different response shapes (single and list).
+- **Separate batch endpoint (chosen):**
+  - Whole request is wrong (`urls` missing, empty or more than 100) → `400`.
+  - Every URL created → `201`.
+  - Some URLs failed → `207 Multi-Status`, each result has its own `status` and `error` (`400` invalid URL or date, `409` custom code taken).
+
+Files and functions changed:
+
+- `src/controllers/url.controller.js`: new `shortenBatch()` with `MAX_BATCH_SIZE = 100`
+- `src/routes/index.js`: new route `POST /shorten/batch`
+- `test/integration.test.js`: 1 new test for a mixed batch (207 with one created, one 409 and one 400)
+
+### Screenshots
+
+Batch of 5 URLs: 2 created, a taken custom code (409), an invalid URL (400) and an invalid expiry date (400).
+
+![Q10](screenshots/q10.png)
