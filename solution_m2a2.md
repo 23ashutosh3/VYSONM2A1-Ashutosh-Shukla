@@ -161,12 +161,12 @@ There is no password check or login , it proves who sent the request not who the
 
 There are many ways
 
-### Logging in (provide authorisation , know who you are)
+### Authentication (who you are)
 
 There are multiple ways to login
 
 - Using username and password with session
-- Login with **JWT token** => after login user give a token , that's use for authorisation purpose
+- Login with **JWT token** => after login the user gets a token, which is sent with every request to prove who they are
 - **Oauth2.0** - login via google , faceboook, linkedIn, amazon etc
 - **SSO** : sed by companies: one company login works for every tool, such as Slack, Jira and email. When an employee leaves, one account is disabled everywhere.
 - **OTP** with mobile number or email
@@ -176,9 +176,9 @@ We can make login stronger using
 
 - **2FA / MFA**
 
-### Deciding what user can do (Authorization)
+### Authorization (what you can do)
 
-- **RBAC** - ROle based authentication system
+- **RBAC** (Role-Based Access Control). Each user has a role such as admin or viewer, and the role decides what they can do.
 - **ABAC** (Attribute-Based Access Control). Rules are based on details such as "the owner can delete" or "only users from India".
 - **Scopes / permissions on tokens.** A token says what it may do, such as `urls:create` or `urls:delete`. This fixes the Q6 problem of one key being able to do everything.
 
@@ -261,3 +261,16 @@ Files and functions changed:
 Batch of 5 URLs: 2 created, a taken custom code (409), an invalid URL (400) and an invalid expiry date (400).
 
 ![Q10](screenshots/q10.png)
+
+
+[Q11] Find out the difference between authentication and authorization.
+
+Authentication -
+
+When user login with credential to any application .it check who you are.
+
+Authorization -
+
+Loggen In user can access the webpage ,it check what user is allowed to do .
+
+once user tried to login with creadential on gmain if he successfully authenticated he is authorized to read , delete or send the email.
