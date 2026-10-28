@@ -94,3 +94,51 @@ LIMIT 10;
 ### Solution
 
 ![times shortened](screenshots/time_shotand.png)
+
+
+[Q5] The easiest way to support this is by adding API keys. You’ll need to make a lot of changes in a lot of places for this.
+
+
+this is the table i created
+CREATE TABLE `users` (
+  `id`         INTEGER  PRIMARY KEY AUTOINCREMENT,
+  `email`      TEXT     NOT NULL UNIQUE,
+  `name`       TEXT,
+  `api_key`    TEXT     NOT NULL UNIQUE,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+Added these record
+id  email              name   api_key                           created_at         
+--  -----------------  -----  --------------------------------  -------------------
+1   alice@example.com  Alice  49d42c77fc660ecc494d5655606840d0  2026-10-28 09:42:06
+2   bob@example.com    Bob    fa38583164ea4f5d7f8d26dcc7db12c5  2026-10-28 09:42:06
+3   carol@example.com  Carol  3352ba44b10df4010df387bc102716c1  2026-10-28 09:42:06
+(.venv) ashutosh@Ashutoshs-MacBook-Air VYSONM2A1-Ashutosh-Shukla % 
+
+Added foreign key in url_shortner 
+
+user.sequelize.model.js: new findByApiKey(apiKey), which returns the matching user or null.
+url.sequelize.model.js: shorten(originalUrl, userId) now saves user_id.
+url.controller.js:
+shorten() reads the x-api-key header and passes the user's id.
+remove() returns 404 if the code doesn't exist and 403 if the caller isn't the owner, then deletes.
+
+
+Why not the URL (/shorten?api_key=...)
+
+When the browser leaves the page, the URL can be sent to the next site in the Referer header.So a key in the URL leaks easily, and anyone who sees the URL can use the key.
+
+
+Showing key URL is not , it can be accessed ,so we can not send it in query
+
+
+Why not the body ({ "url": "...", "api_key": "..." })
+
+GET and DELETE requests normally have no body, so the key would only work on POST. Our delete endpoint needs the key too.
+
+
+Why the header (x-api-key: ...)
+
+Headers are the standard place for credentials, like Authorization or x-api-key.
+They are usually not logged or cached, and they don't show up in browser history.
+The same header works on every endpoint and every method.

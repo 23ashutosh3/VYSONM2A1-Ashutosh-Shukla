@@ -1,6 +1,7 @@
 // Q6: the raw-SQL model is kept for reference; Sequelize is used instead.
 // import * as Url from '../models/url.model.js';
 import * as Url from "../models/url.sequelize.model.js";
+import * as User from "../models/user.sequelize.model.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
 // Only http(s) is accepted; javascript: and data: URLs would make the
@@ -33,8 +34,11 @@ export async function shorten(req, res) {
   const { url, original_url: originalUrl } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
 
+  // M2A2 Q5: the api key comes from the x-api-key header, not the body or URL.
+  const user = await User.findByApiKey(req.get("x-api-key"));
+
   // M2A2 Q4: always a new row, so always 201.
-  const row = await Url.shorten(target);
+  const row = await Url.shorten(target, user?.id ?? null);
 
   res.status(201).json({
     short_code: row.short_code,
@@ -63,10 +67,18 @@ export async function redirect(req, res) {
 export async function remove(req, res) {
   const { code } = req.params;
 
-  const deleted = await Url.deleteByCode(code);
-  if (!deleted) {
+  const row = await Url.findByCode(code);
+  if (!row) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
+
+  // M2A2 Q5: only the user who owns the code can delete it.
+  const user = await User.findByApiKey(req.get("x-api-key"));
+  if (!user || row.user_id !== user.id) {
+    throw new HttpError(403, "You do not own this short code");
+  }
+
+  await Url.deleteByCode(code);
 
   // 204: the delete worked and there is nothing left to send back.
   res.status(204).end();

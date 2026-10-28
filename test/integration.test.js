@@ -12,8 +12,13 @@ process.env.DATABASE_PATH = join(dir, 'test.db');
 
 const { default: app } = await import('../src/app.js');
 const { findByCode } = await import('../src/models/url.sequelize.model.js');
+const { User } = await import('../src/models/user.sequelize.model.js');
 
 const INPUT_URL = 'https://example.com';
+
+// M2A2 Q5: two users, so tests can check who owns a code.
+const alice = await User.create({ email: 'alice@example.com', name: 'Alice', api_key: randomBytes(16).toString('hex') });
+const bob = await User.create({ email: 'bob@example.com', name: 'Bob', api_key: randomBytes(16).toString('hex') });
 
 let server;
 let baseUrl;
@@ -99,19 +104,23 @@ test('redirecting with a short code that does not exist returns 404', async () =
 });
 
 // Q9: DELETE /shorten/:code removes a code so it no longer redirects.
+// M2A2 Q5: only the owner can delete, so both calls send alice's api key.
 test('deleting a short code removes it', async () => {
   const url = `https://example.com/${randomBytes(8).toString('hex')}`;
 
   const shortenResponse = await fetch(`${baseUrl}/shorten`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': alice.api_key },
     body: JSON.stringify({ url }),
   });
   assert.equal(shortenResponse.status, 201);
   const { short_code: shortCode } = await shortenResponse.json();
 
   // 1. Delete it: 204 with an empty body.
-  const deleteResponse = await fetch(`${baseUrl}/shorten/${shortCode}`, { method: 'DELETE' });
+  const deleteResponse = await fetch(`${baseUrl}/shorten/${shortCode}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': alice.api_key },
+  });
   assert.equal(deleteResponse.status, 204);
   assert.equal(await deleteResponse.text(), '');
 
@@ -203,4 +212,66 @@ test('redirecting counts clicks and saves the last access time', async () => {
   row = await findByCode(shortCode);
   assert.equal(row.click_count, 3);
   assert.match(row.last_accessed_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+});
+
+// M2A2 Q5: the api key in the x-api-key header decides who owns a short code.
+
+function shortenAs(user, url) {
+  return fetch(`${baseUrl}/shorten`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': user.api_key },
+    body: JSON.stringify({ url }),
+  });
+}
+
+function deleteAs(user, shortCode) {
+  return fetch(`${baseUrl}/shorten/${shortCode}`, {
+    method: 'DELETE',
+    headers: user ? { 'x-api-key': user.api_key } : {},
+  });
+}
+
+test('shortening with an api key makes that user the owner', async () => {
+  const response = await shortenAs(alice, randomUrl());
+  assert.equal(response.status, 201);
+  const { short_code: shortCode } = await response.json();
+
+  const row = await findByCode(shortCode);
+  assert.equal(row.user_id, alice.id);
+});
+
+test('shortening without an api key leaves the code without an owner', async () => {
+  const { short_code: shortCode } = await (await postShorten({ url: randomUrl() })).json();
+
+  const row = await findByCode(shortCode);
+  assert.equal(row.user_id, null);
+});
+
+test('deleting without an api key returns 403 and keeps the code', async () => {
+  const { short_code: shortCode } = await (await shortenAs(alice, randomUrl())).json();
+
+  const response = await deleteAs(null, shortCode);
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, 'You do not own this short code');
+
+  assert.notEqual(await findByCode(shortCode), null);
+});
+
+test('deleting a code owned by another user returns 403 and keeps the code', async () => {
+  const { short_code: shortCode } = await (await shortenAs(alice, randomUrl())).json();
+
+  const response = await deleteAs(bob, shortCode);
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, 'You do not own this short code');
+
+  assert.notEqual(await findByCode(shortCode), null);
+});
+
+test('the owner can delete their own code', async () => {
+  const { short_code: shortCode } = await (await shortenAs(alice, randomUrl())).json();
+
+  const response = await deleteAs(alice, shortCode);
+  assert.equal(response.status, 204);
+
+  assert.equal(await findByCode(shortCode), null);
 });

@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { DataTypes, UniqueConstraintError } from 'sequelize';
 import { sequelize } from '../sequelize.js';
+// M2A2 Q5: imported first so the users table exists before user_id points at it.
+import { User } from './user.sequelize.model.js';
 
 // Sequelize version of url.model.js. Same table, same behaviour, but the
 // queries are built by the ORM instead of written as SQL strings.
@@ -42,6 +44,12 @@ export const Url = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // M2A2 Q5: owner of the short code (null for codes created without an api_key).
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: User, key: 'id' },
+    },
   },
   {
     tableName: 'url_shortner',
@@ -57,7 +65,7 @@ await Url.sync();
 // sync() does not add new columns to a table that already exists, so tables
 // created before M2A2 Q3 (the SQLite file, Neon) get them added here.
 const existingColumns = await sequelize.getQueryInterface().describeTable('url_shortner');
-for (const column of ['click_count', 'last_accessed_at']) {
+for (const column of ['click_count', 'last_accessed_at', 'user_id']) {
   if (!existingColumns[column]) {
     await sequelize.getQueryInterface().addColumn('url_shortner', column, Url.getAttributes()[column]);
   }
@@ -105,7 +113,7 @@ export async function deleteByCode(code) {
  * M2A2 Q4: the same URL can have many short codes, so every call creates a
  * new row instead of returning the code the URL was first given.
  */
-export async function shorten(originalUrl) {
+export async function shorten(originalUrl, userId = null) {
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -113,6 +121,8 @@ export async function shorten(originalUrl) {
         original_url: originalUrl,
         short_code: generateCode(),
         created_at: now(),
+        // M2A2 Q5: owner of the code, from the api_key header.
+        user_id: userId,
       });
       return row.get({ plain: true });
     } catch (err) {
