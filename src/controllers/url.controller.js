@@ -33,9 +33,10 @@ export async function shorten(req, res) {
   const { url, original_url: originalUrl } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
 
-  const { row, created } = await Url.shorten(target);
+  // M2A2 Q4: always a new row, so always 201.
+  const row = await Url.shorten(target);
 
-  res.status(created ? 201 : 200).json({
+  res.status(201).json({
     short_code: row.short_code,
     original_url: row.original_url,
     created_at: row.created_at,

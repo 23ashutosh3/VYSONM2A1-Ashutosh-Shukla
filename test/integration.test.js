@@ -53,8 +53,9 @@ test('shortening a URL and following its code redirects to the original', async 
   assert.equal(redirectResponse.headers.get('location'), INPUT_URL);
 });
 
-// Q7: sending the same URL twice must return the same short code.
-test('shortening the same URL twice returns the same short code', async () => {
+// M2A2 Q4 (replaces M2A1 Q7): the same URL can have many short codes, so
+// sending it twice creates two rows with different codes.
+test('shortening the same URL twice returns two different short codes', async () => {
   // A random path makes the URL new on every run, so the first call is a
   // genuine create rather than a hit on a row left by an earlier test.
   const randomUrl = `https://example.com/${randomBytes(8).toString('hex')}`;
@@ -71,12 +72,12 @@ test('shortening the same URL twice returns the same short code', async () => {
   assert.equal(firstResponse.status, 201);
   const first = await firstResponse.json();
 
-  // 2. Second call finds the existing row instead of creating another one.
+  // 2. Second call creates another row with a new code.
   const secondResponse = await shorten();
-  assert.equal(secondResponse.status, 200);
+  assert.equal(secondResponse.status, 201);
   const second = await secondResponse.json();
 
-  assert.equal(second.short_code, first.short_code);
+  assert.notEqual(second.short_code, first.short_code);
   assert.equal(second.original_url, randomUrl);
 });
 

@@ -101,13 +101,11 @@ export async function deleteByCode(code) {
 }
 
 /**
- * Stores the URL and returns its row. The same URL always maps back to the
- * code it was first given, so repeat calls stay idempotent.
+ * Stores the URL under a new short code and returns its row.
+ * M2A2 Q4: the same URL can have many short codes, so every call creates a
+ * new row instead of returning the code the URL was first given.
  */
 export async function shorten(originalUrl) {
-  const existing = await Url.findOne({ where: { original_url: originalUrl }, raw: true });
-  if (existing) return { row: existing, created: false };
-
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -116,7 +114,7 @@ export async function shorten(originalUrl) {
         short_code: generateCode(),
         created_at: now(),
       });
-      return { row: row.get({ plain: true }), created: true };
+      return row.get({ plain: true });
     } catch (err) {
       if (!(err instanceof UniqueConstraintError)) throw err;
     }
