@@ -142,3 +142,42 @@ Why the header (x-api-key: ...)
 Headers are the standard place for credentials, like Authorization or x-api-key.
 They are usually not logged or cached, and they don't show up in browser history.
 The same header works on every endpoint and every method.
+
+
+
+[Q6] What are the issues with using API keys?
+
+If key can leak , whoever find that can do some action like create or delete and server can't tell the difference
+
+it never expire so a stolen key work next year also until we change it .
+
+Changing the key is a hassle , user need to update it in app that uses it
+
+There is no password check or login , it proves who sent the request not who the person is
+
+## Q7
+
+> [Q7] List down as many more ways to manage users as you can find.
+
+There are many ways
+
+### Logging in (provide authorisation , know who you are)
+
+There are multiple ways to login
+
+- Using username and password with session
+- Login with **JWT token** => after login user give a token , that's use for authorisation purpose
+- **Oauth2.0** - login via google , faceboook, linkedIn, amazon etc
+- **SSO** : sed by companies: one company login works for every tool, such as Slack, Jira and email. When an employee leaves, one account is disabled everywhere.
+- **OTP** with mobile number or email
+- **Passkeys**: user logs with a fingerprint
+
+We can make login stronger using
+
+- **2FA / MFA**
+
+### Deciding what user can do (Authorization)
+
+- **RBAC** - ROle based authentication system
+- **ABAC** (Attribute-Based Access Control). Rules are based on details such as "the owner can delete" or "only users from India".
+- **Scopes / permissions on tokens.** A token says what it may do, such as `urls:create` or `urls:delete`. This fixes the Q6 problem of one key being able to do everything.
