@@ -11,6 +11,7 @@ const dir = mkdtempSync(join(tmpdir(), 'url-shortener-test-'));
 process.env.DATABASE_PATH = join(dir, 'test.db');
 
 const { default: app } = await import('../src/app.js');
+const { findByCode } = await import('../src/models/url.sequelize.model.js');
 
 const INPUT_URL = 'https://example.com';
 
@@ -181,4 +182,24 @@ test('different URLs get different short codes', async () => {
   const second = await (await postShorten({ url: randomUrl() })).json();
 
   assert.notEqual(first.short_code, second.short_code);
+});
+
+// M2A2 Q3: every /redirect call adds 1 to click_count and sets last_accessed_at.
+test('redirecting counts clicks and saves the last access time', async () => {
+  const { short_code: shortCode } = await (await postShorten({ url: randomUrl() })).json();
+
+  // 1. A new code has no clicks and has never been accessed.
+  let row = await findByCode(shortCode);
+  assert.equal(row.click_count, 0);
+  assert.equal(row.last_accessed_at, null);
+
+  // 2. Redirect 3 times.
+  for (let i = 0; i < 3; i += 1) {
+    await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
+  }
+
+  // 3. The counter is 3 and the access time is filled in.
+  row = await findByCode(shortCode);
+  assert.equal(row.click_count, 3);
+  assert.match(row.last_accessed_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
 });

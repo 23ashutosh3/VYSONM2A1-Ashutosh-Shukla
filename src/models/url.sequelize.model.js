@@ -31,6 +31,17 @@ export const Url = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    // M2A2 Q3: how many times /redirect was called for this code, and when
+    // it was last called (null until the first visit).
+    click_count: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    last_accessed_at: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: 'url_shortner',
@@ -42,6 +53,15 @@ export const Url = sequelize.define(
 
 // Creates the table if it is missing; an existing table is left untouched.
 await Url.sync();
+
+// sync() does not add new columns to a table that already exists, so tables
+// created before M2A2 Q3 (the SQLite file, Neon) get them added here.
+const existingColumns = await sequelize.getQueryInterface().describeTable('url_shortner');
+for (const column of ['click_count', 'last_accessed_at']) {
+  if (!existingColumns[column]) {
+    await sequelize.getQueryInterface().addColumn('url_shortner', column, Url.getAttributes()[column]);
+  }
+}
 
 function generateCode() {
   // randomBytes avoids the modulo bias of Math.random-based pickers.
@@ -58,6 +78,20 @@ function now() {
 export async function findByCode(code) {
   const row = await Url.findOne({ where: { short_code: code }, raw: true });
   return row ?? null;
+}
+
+/**
+ * M2A2 Q3: counts a visit and returns the row, or null if the code does not
+ * exist. click_count + 1 runs inside the database, so two visits at the same
+ * moment are both counted instead of one overwriting the other.
+ */
+export async function recordVisit(code) {
+  const [count] = await Url.update(
+    { click_count: sequelize.literal('click_count + 1'), last_accessed_at: now() },
+    { where: { short_code: code } },
+  );
+  if (count === 0) return null;
+  return findByCode(code);
 }
 
 // Returns true if a row was removed, false if the code did not exist.

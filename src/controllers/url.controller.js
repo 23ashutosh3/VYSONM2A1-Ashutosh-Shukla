@@ -49,7 +49,8 @@ export async function redirect(req, res) {
     throw new HttpError(400, '"code" query parameter is required');
   }
 
-  const row = await Url.findByCode(code.trim());
+  // Also  click_count and last_accessed_at (M2A2 Q3).
+  const row = await Url.recordVisit(code.trim());
   if (!row) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
