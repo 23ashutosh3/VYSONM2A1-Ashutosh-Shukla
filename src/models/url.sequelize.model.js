@@ -127,14 +127,16 @@ export async function deleteByCode(code) {
  * Stores the URL under a new short code and returns its row.
  * M2A2 Q4: the same URL can have many short codes, so every call creates a
  * new row instead of returning the code the URL was first given.
+ * M2A2 Q9: with customCode, that code is used instead of a random one and
+ * null is returned if it is already taken.
  */
-export async function shorten(originalUrl, userId = null, expiresAt = null) {
+export async function shorten(originalUrl, userId = null, expiresAt = null, customCode = null) {
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       const row = await Url.create({
         original_url: originalUrl,
-        short_code: generateCode(),
+        short_code: customCode ?? generateCode(),
         created_at: now(),
         // M2A2 Q5: owner of the code, from the api_key header.
         user_id: userId,
@@ -144,6 +146,8 @@ export async function shorten(originalUrl, userId = null, expiresAt = null) {
       return row.get({ plain: true });
     } catch (err) {
       if (!(err instanceof UniqueConstraintError)) throw err;
+      // A custom code is not retried: the user picked it, so it is just taken.
+      if (customCode) return null;
     }
   }
   throw new Error('Could not generate a unique short code');

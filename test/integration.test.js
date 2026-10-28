@@ -301,3 +301,29 @@ test('redirecting with a short code that has not expired yet still redirects', a
   const response = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
   assert.equal(response.status, 302);
 });
+
+// M2A2 Q9: optional custom_code on /shorten.
+
+test('shortening with a custom code uses that code', async () => {
+  const url = randomUrl();
+  const customCode = `custom-${randomBytes(4).toString('hex')}`;
+
+  const response = await postShorten({ url, custom_code: customCode });
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).short_code, customCode);
+
+  const redirectResponse = await fetch(`${baseUrl}/redirect?code=${customCode}`, { redirect: 'manual' });
+  assert.equal(redirectResponse.status, 302);
+  assert.equal(redirectResponse.headers.get('location'), url);
+});
+
+test('shortening with a custom code that already exists returns 409', async () => {
+  const customCode = `custom-${randomBytes(4).toString('hex')}`;
+
+  const first = await postShorten({ url: randomUrl(), custom_code: customCode });
+  assert.equal(first.status, 201);
+
+  const second = await postShorten({ url: randomUrl(), custom_code: customCode });
+  assert.equal(second.status, 409);
+  assert.equal((await second.json()).error, `Short code "${customCode}" is not available, try another one`);
+});

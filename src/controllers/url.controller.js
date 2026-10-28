@@ -43,7 +43,7 @@ function parseExpiresAt(value) {
 // async because Sequelize queries return promises. Express 5 forwards a
 // rejected promise to the error handler, so no try/catch is needed here.
 export async function shorten(req, res) {
-  const { url, original_url: originalUrl, expires_at } = req.body ?? {};
+  const { url, original_url: originalUrl, expires_at, custom_code } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
   const expiresAt = parseExpiresAt(expires_at);
 
@@ -51,7 +51,11 @@ export async function shorten(req, res) {
   const user = await User.findByApiKey(req.get("x-api-key"));
 
   // M2A2 Q4: always a new row, so always 201.
-  const row = await Url.shorten(target, user?.id ?? null, expiresAt);
+  // M2A2 Q9: optional custom_code is used as the short code if it is free.
+  const row = await Url.shorten(target, user?.id ?? null, expiresAt, custom_code ?? null);
+  if (!row) {
+    throw new HttpError(409, `Short code "${custom_code}" is not available, try another one`);
+  }
 
   res.status(201).json({
     short_code: row.short_code,

@@ -181,3 +181,28 @@ We can make login stronger using
 - **RBAC** - ROle based authentication system
 - **ABAC** (Attribute-Based Access Control). Rules are based on details such as "the owner can delete" or "only users from India".
 - **Scopes / permissions on tokens.** A token says what it may do, such as `urls:create` or `urls:delete`. This fixes the Q6 problem of one key being able to do everything.
+
+
+[Q8] Add an expiry date field to the URLs. Modify the API to accept optional expiry date during creation. Write tests to verify expired URLs return appropriate error codes.
+
+
+Expiry date field: url_shortner has a new expires_at column.
+Expired links: /redirect returns 410 Gone once a link has expired.
+Tests: an expired link returns 410, and a link that hasn't expired yet still redirects.
+
+Files and functions changed:
+
+- `src/models/url.sequelize.model.js`: added `expires_at` column, new `isExpired(row)` and `toIsoText(date)`, `shorten()` now takes `expiresAt`
+- `src/controllers/url.controller.js`: new `parseExpiresAt(value)`, `shorten()` reads `expires_at` from body, `redirect()` returns 410 if expired
+- `test/integration.test.js`: 2 new tests for expired and not-expired links
+
+
+[Q9] In the /shorten API endpoint, allow an optional parameter to set the custom code as requested by the user (e.g., user wants https://short.ly/awesome-article). Add tests as well.
+
+Added custom code and test
+
+Files and functions changed:
+
+- `src/models/url.sequelize.model.js`: `shorten()` now takes `customCode`, uses it instead of a random code and returns `null` if it is taken
+- `src/controllers/url.controller.js`: `shorten()` reads `custom_code` from body, returns 409 if the code is not available
+- `test/integration.test.js`: 2 new tests for a free custom code and a taken one (409)
