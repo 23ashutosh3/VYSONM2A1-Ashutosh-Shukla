@@ -274,3 +274,22 @@ Authorization -
 Loggen In user can access the webpage ,it check what user is allowed to do .
 
 once user tried to login with creadential on gmain if he successfully authenticated he is authorized to read , delete or send the email.
+
+
+[Q12] There are two tiers now:
+
+1. “hobby” - the one that the user is assigned by default
+2. “enterprise” - new tier that supports bulk creation, client will share the details of the user who has moved to this tier and you can mark it in the users table manually for some time before automating this workflow
+
+Modify the bulk creation flow to check if the user is on the “enterprise” tier before moving further. Add tests as well.
+
+
+Added two tier 
+
+Only enterprize tier should have access to bulk feature
+
+Files and functions changed:
+
+- `src/models/user.sequelize.model.js`: new `tier` column (default `hobby`), added to existing `users` tables on startup
+- `src/controllers/url.controller.js`: `shortenBatch()` returns 403 if the user is not on the `enterprise` tier
+- `test/integration.test.js`: new enterprise user `carol`, the batch test now sends her api key

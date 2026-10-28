@@ -72,6 +72,12 @@ const MAX_BATCH_SIZE = 100;
 export async function shortenBatch(req, res) {
   const { urls } = req.body ?? {};
 
+  // M2A2 Q12: bulk creation is only for the enterprise tier.
+  const user = await User.findByApiKey(req.get("x-api-key"));
+  if (user?.tier !== "enterprise") {
+    throw new HttpError(403, "Bulk creation is only available on the enterprise tier");
+  }
+
   if (!Array.isArray(urls) || urls.length === 0) {
     throw new HttpError(400, '"urls" must be a non-empty array');
   }
@@ -79,15 +85,13 @@ export async function shortenBatch(req, res) {
     throw new HttpError(400, `At most ${MAX_BATCH_SIZE} URLs can be shortened in one request`);
   }
 
-  const user = await User.findByApiKey(req.get("x-api-key"));
-
   // allSettled, not all: every item finishes and reports its own result,
   // instead of the whole batch failing on the first error.
   const settled = await Promise.allSettled(
     urls.map(async (item) => {
       const target = parseUrl(item?.url);
       const expiresAt = parseExpiresAt(item?.expires_at);
-      const row = await Url.shorten(target, user?.id ?? null, expiresAt, item?.custom_code ?? null);
+      const row = await Url.shorten(target, user.id, expiresAt, item?.custom_code ?? null);
       if (!row) {
         throw new HttpError(409, `Short code "${item.custom_code}" is not available, try another one`);
       }

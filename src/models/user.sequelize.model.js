@@ -24,6 +24,13 @@ export const User = sequelize.define(
       allowNull: false,
       unique: true,
     },
+    // M2A2 Q12: "hobby" by default; "enterprise" is set manually in the
+    // users table for now and allows bulk creation.
+    tier: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      defaultValue: 'hobby',
+    },
     // literal() makes this a database default, so rows inserted with plain
     // SQL get a timestamp too, not only rows created through Sequelize.
     created_at: {
@@ -40,6 +47,13 @@ export const User = sequelize.define(
 
 // Creates the table if it is missing; an existing table is left untouched.
 await User.sync();
+
+// sync() does not add new columns to a table that already exists, so tables
+// created before M2A2 Q12 get the tier column added here.
+const existingColumns = await sequelize.getQueryInterface().describeTable('users');
+if (!existingColumns.tier) {
+  await sequelize.getQueryInterface().addColumn('users', 'tier', User.getAttributes().tier);
+}
 
 // Returns the user with this api_key, or null if there is none.
 export async function findByApiKey(apiKey) {

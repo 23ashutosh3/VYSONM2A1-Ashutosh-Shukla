@@ -19,6 +19,8 @@ const INPUT_URL = 'https://example.com';
 // M2A2 Q5: two users, so tests can check who owns a code.
 const alice = await User.create({ email: 'alice@example.com', name: 'Alice', api_key: randomBytes(16).toString('hex') });
 const bob = await User.create({ email: 'bob@example.com', name: 'Bob', api_key: randomBytes(16).toString('hex') });
+// M2A2 Q12: only enterprise users can use bulk creation.
+const carol = await User.create({ email: 'carol@example.com', name: 'Carol', api_key: randomBytes(16).toString('hex'), tier: 'enterprise' });
 
 let server;
 let baseUrl;
@@ -335,7 +337,7 @@ test('batch shortening returns 207 and says which URLs failed and why', async ()
 
   const response = await fetch(`${baseUrl}/shorten/batch`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': carol.api_key },
     body: JSON.stringify({
       urls: [{ url: randomUrl() }, { url: randomUrl(), custom_code: takenCode }, { url: 'not-a-url' }],
     }),
