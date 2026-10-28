@@ -275,3 +275,29 @@ test('the owner can delete their own code', async () => {
 
   assert.equal(await findByCode(shortCode), null);
 });
+
+// M2A2 Q8: optional expires_at on /shorten; expired URLs return 410 Gone.
+
+function hoursFromNow(hours) {
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+test('redirecting with an expired short code returns 410', async () => {
+  const { short_code: shortCode } = await (
+    await postShorten({ url: randomUrl(), expires_at: hoursFromNow(-1) })
+  ).json();
+
+  const response = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
+  assert.equal(response.status, 410);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal((await response.json()).error, `Short code "${shortCode}" has expired`);
+});
+
+test('redirecting with a short code that has not expired yet still redirects', async () => {
+  const { short_code: shortCode } = await (
+    await postShorten({ url: randomUrl(), expires_at: hoursFromNow(1) })
+  ).json();
+
+  const response = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
+  assert.equal(response.status, 302);
+});

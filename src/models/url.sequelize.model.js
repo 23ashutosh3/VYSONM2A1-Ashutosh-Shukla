@@ -50,6 +50,11 @@ export const Url = sequelize.define(
       allowNull: true,
       references: { model: User, key: 'id' },
     },
+    // M2A2 Q8: after this time /redirect returns 410 (null = never expires).
+    expires_at: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: 'url_shortner',
@@ -65,7 +70,7 @@ await Url.sync();
 // sync() does not add new columns to a table that already exists, so tables
 // created before M2A2 Q3 (the SQLite file, Neon) get them added here.
 const existingColumns = await sequelize.getQueryInterface().describeTable('url_shortner');
-for (const column of ['click_count', 'last_accessed_at', 'user_id']) {
+for (const column of ['click_count', 'last_accessed_at', 'user_id', 'expires_at']) {
   if (!existingColumns[column]) {
     await sequelize.getQueryInterface().addColumn('url_shortner', column, Url.getAttributes()[column]);
   }
@@ -79,8 +84,18 @@ function generateCode() {
   return code;
 }
 
+// Same ISO-8601 text as created_at, e.g. "2026-10-08T17:30:31Z".
+export function toIsoText(date = new Date()) {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 function now() {
-  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  return toIsoText();
+}
+
+// M2A2 Q8: true if the row has an expiry time and it has passed.
+export function isExpired(row) {
+  return row.expires_at !== null && new Date(row.expires_at) <= new Date();
 }
 
 export async function findByCode(code) {
@@ -113,7 +128,7 @@ export async function deleteByCode(code) {
  * M2A2 Q4: the same URL can have many short codes, so every call creates a
  * new row instead of returning the code the URL was first given.
  */
-export async function shorten(originalUrl, userId = null) {
+export async function shorten(originalUrl, userId = null, expiresAt = null) {
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -123,6 +138,8 @@ export async function shorten(originalUrl, userId = null) {
         created_at: now(),
         // M2A2 Q5: owner of the code, from the api_key header.
         user_id: userId,
+        // M2A2 Q8: optional expiry time.
+        expires_at: expiresAt,
       });
       return row.get({ plain: true });
     } catch (err) {

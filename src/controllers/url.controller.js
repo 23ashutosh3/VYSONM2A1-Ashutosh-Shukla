@@ -28,22 +28,36 @@ function parseUrl(value) {
   return value.trim();
 }
 
+// M2A2 Q8: expires_at is optional, stored in the same format as created_at.
+function parseExpiresAt(value) {
+  if (value === undefined || value === null) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new HttpError(400, `"${value}" is not a valid expires_at date`);
+  }
+
+  return Url.toIsoText(date);
+}
+
 // async because Sequelize queries return promises. Express 5 forwards a
 // rejected promise to the error handler, so no try/catch is needed here.
 export async function shorten(req, res) {
-  const { url, original_url: originalUrl } = req.body ?? {};
+  const { url, original_url: originalUrl, expires_at } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
+  const expiresAt = parseExpiresAt(expires_at);
 
   // M2A2 Q5: the api key comes from the x-api-key header, not the body or URL.
   const user = await User.findByApiKey(req.get("x-api-key"));
 
   // M2A2 Q4: always a new row, so always 201.
-  const row = await Url.shorten(target, user?.id ?? null);
+  const row = await Url.shorten(target, user?.id ?? null, expiresAt);
 
   res.status(201).json({
     short_code: row.short_code,
     original_url: row.original_url,
     created_at: row.created_at,
+    expires_at: row.expires_at,
   });
 }
 
@@ -58,6 +72,11 @@ export async function redirect(req, res) {
   const row = await Url.recordVisit(code.trim());
   if (!row) {
     throw new HttpError(404, `No URL found for code "${code}"`);
+  }
+
+  // M2A2 Q8: 410 Gone, the code existed but has expired.
+  if (Url.isExpired(row)) {
+    throw new HttpError(410, `Short code "${code}" has expired`);
   }
 
   res.redirect(302, row.original_url);
