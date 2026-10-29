@@ -402,3 +402,18 @@ Features Short.io supports:
 1. **Geo-targeting:** one short link opens a different page for each country. For example, users in India go to the India page and users in the US go to the US page.
 2. **Device targeting:** one short link opens a different page on iPhone and on Android. It can also open the mobile app directly.
 3. **A/B testing:** one short link sends half the users to page A and half to page B, so you can see which page works better.
+
+
+## [Q19 BONUS] How would you allow users to use their own custom domains with your URL shortener (e.g., go.userdomain.com/abc123)?
+
+1. **Register:** `POST /domains` saves the domain in a `domains` table (`domain`, `user_id`, `verified`).
+2. **DNS + verify:** user adds a CNAME to our host and a TXT record with a token we give. We mark it `verified` once the TXT matches.
+3. **Schema:** add a `domain` column to `url_shortner`, unique on `(domain, short_code)`.
+4. **Create:** `POST /shorten` takes an optional `domain`. It must be one of the user's verified domains (else 403); if not sent, our default domain is used.
+
+
+
+## [Q20 BONUS] Storing credentials in a different table is the best practice, whether it's a one:one mapping (say one user has one api key) or one:many (one user can have multiple api keys). Can you find out why? 🙂
+
+1. **Less exposure:** the `users` table is read everywhere (profile, joins, lists, logs). If the key sits there, a `SELECT *` or a bad API response can leak it. In a separate table it is only read during auth.
+2. **Stricter access:** a separate table can get its own DB permissions, encryption and audit logging, without affecting the rest of the user data.
