@@ -40,19 +40,31 @@ function parseExpiresAt(value) {
   return Url.toIsoText(date);
 }
 
+// M2A2 Q14: password is optional; it is stored hashed, null means none.
+function parsePassword(value) {
+  if (value === undefined || value === null) return null;
+
+  if (typeof value !== "string" || value === "") {
+    throw new HttpError(400, '"password" must be a non-empty string');
+  }
+
+  return Url.hashPassword(value);
+}
+
 // async because Sequelize queries return promises. Express 5 forwards a
 // rejected promise to the error handler, so no try/catch is needed here.
 export async function shorten(req, res) {
-  const { url, original_url: originalUrl, expires_at, custom_code } = req.body ?? {};
+  const { url, original_url: originalUrl, expires_at, custom_code, password } = req.body ?? {};
   const target = parseUrl(url ?? originalUrl);
   const expiresAt = parseExpiresAt(expires_at);
+  const passwordHash = parsePassword(password);
 
   // M2A2 Q5: the api key comes from the x-api-key header, not the body or URL.
   const user = await User.findByApiKey(req.get("x-api-key"));
 
   // M2A2 Q4: always a new row, so always 201.
   // M2A2 Q9: optional custom_code is used as the short code if it is free.
-  const row = await Url.shorten(target, user?.id ?? null, expiresAt, custom_code ?? null);
+  const row = await Url.shorten(target, user?.id ?? null, expiresAt, custom_code ?? null, passwordHash);
   if (!row) {
     throw new HttpError(409, `Short code "${custom_code}" is not available, try another one`);
   }
@@ -152,11 +164,17 @@ export async function redirect(req, res) {
     throw new HttpError(410, `Short code "${code}" has expired`);
   }
 
+  // M2A2 Q14: a password-protected code needs the right ?password=.
+  if (!Url.checkPassword(row, req.query.password)) {
+    throw new HttpError(401, `Short code "${code}" needs the correct password`);
+  }
+
   res.redirect(302, row.original_url);
 }
 
 // M2A2 Q13: the owner edits expires_at. A time in the past makes the code
 // inactive, a future time (or null for no expiry) makes it active again.
+// M2A2 Q14: password can be edited too (null removes it).
 export async function update(req, res) {
   const { code } = req.params;
 
@@ -170,11 +188,15 @@ export async function update(req, res) {
     throw new HttpError(403, "You do not own this short code");
   }
 
-  if (!req.body || !("expires_at" in req.body)) {
-    throw new HttpError(400, '"expires_at" is required');
+  const changes = {};
+  if (req.body && "expires_at" in req.body) changes.expires_at = parseExpiresAt(req.body.expires_at);
+  if (req.body && "password" in req.body) changes.password_hash = parsePassword(req.body.password);
+
+  if (Object.keys(changes).length === 0) {
+    throw new HttpError(400, '"expires_at" or "password" is required');
   }
 
-  const updated = await Url.updateExpiresAt(code, parseExpiresAt(req.body.expires_at));
+  const updated = await Url.updateCode(code, changes);
 
   res.json({
     short_code: updated.short_code,

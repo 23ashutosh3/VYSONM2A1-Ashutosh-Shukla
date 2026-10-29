@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DataTypes, UniqueConstraintError } from 'sequelize';
 import { sequelize } from '../sequelize.js';
 // M2A2 Q5: imported first so the users table exists before user_id points at it.
@@ -55,6 +55,11 @@ export const Url = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // M2A2 Q14: optional password as "salt:hash" (null = no password).
+    password_hash: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: 'url_shortner',
@@ -70,7 +75,7 @@ await Url.sync();
 // sync() does not add new columns to a table that already exists, so tables
 // created before M2A2 Q3 (the SQLite file, Neon) get them added here.
 const existingColumns = await sequelize.getQueryInterface().describeTable('url_shortner');
-for (const column of ['click_count', 'last_accessed_at', 'user_id', 'expires_at']) {
+for (const column of ['click_count', 'last_accessed_at', 'user_id', 'expires_at', 'password_hash']) {
   if (!existingColumns[column]) {
     await sequelize.getQueryInterface().addColumn('url_shortner', column, Url.getAttributes()[column]);
   }
@@ -98,6 +103,20 @@ export function isExpired(row) {
   return row.expires_at !== null && new Date(row.expires_at) <= new Date();
 }
 
+// M2A2 Q14: scrypt with a random salt, so the plain password is never stored.
+export function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`;
+}
+
+// M2A2 Q14: true if the code has no password or the given one matches.
+export function checkPassword(row, password) {
+  if (row.password_hash === null) return true;
+  if (typeof password !== 'string') return false;
+  const [salt, hash] = row.password_hash.split(':');
+  return timingSafeEqual(scryptSync(password, salt, 64), Buffer.from(hash, 'hex'));
+}
+
 export async function findByCode(code) {
   const row = await Url.findOne({ where: { short_code: code }, raw: true });
   return row ?? null;
@@ -117,9 +136,9 @@ export async function recordVisit(code) {
   return findByCode(code);
 }
 
-// M2A2 Q13: sets a new expires_at and returns the updated row.
-export async function updateExpiresAt(code, expiresAt) {
-  await Url.update({ expires_at: expiresAt }, { where: { short_code: code } });
+// M2A2 Q13: sets new values (expires_at, Q14 password_hash) and returns the updated row.
+export async function updateCode(code, changes) {
+  await Url.update(changes, { where: { short_code: code } });
   return findByCode(code);
 }
 
@@ -135,8 +154,9 @@ export async function deleteByCode(code) {
  * new row instead of returning the code the URL was first given.
  * M2A2 Q9: with customCode, that code is used instead of a random one and
  * null is returned if it is already taken.
+ * M2A2 Q14: passwordHash is the hashed optional password.
  */
-export async function shorten(originalUrl, userId = null, expiresAt = null, customCode = null) {
+export async function shorten(originalUrl, userId = null, expiresAt = null, customCode = null, passwordHash = null) {
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -148,6 +168,7 @@ export async function shorten(originalUrl, userId = null, expiresAt = null, cust
         user_id: userId,
         // M2A2 Q8: optional expiry time.
         expires_at: expiresAt,
+        password_hash: passwordHash,
       });
       return row.get({ plain: true });
     } catch (err) {
