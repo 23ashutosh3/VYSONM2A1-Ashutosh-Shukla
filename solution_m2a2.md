@@ -333,3 +333,28 @@ Added the changes
 2. `PATCH /shorten/mSrNv8cF` with `"password": "newpass"` changes the password.
 
 ![Q14](screenshots/q14.png)
+
+
+[Q15] Support this feature of showing a list of all URLs of a user.
+
+
+New endpoint `GET /urls` lists every short code of the user from the `x-api-key` header. All fields are shown except `password_hash` (only `has_password`). The list is paged with `?page=` and `?limit=` (default 100, max 1000).
+
+Files changed:
+
+src/routes/index.js: new GET /urls route.
+src/controllers/url.controller.js: new list() function.
+src/models/url.sequelize.model.js: new listByUser() function.
+test/integration.test.js: one new test, a user lists their codes page by page.
+
+### Curl
+
+```
+curl "http://localhost:3000/urls?page=1&limit=5" -H "x-api-key: 49d42c77fc660ecc494d5655606840d0"
+```
+
+### Screenshots
+
+Page 1 with `limit=5` returns 5 of the user's 7 short codes (`total: 7`).
+
+![Q15](screenshots/Q15.png)

@@ -142,6 +142,18 @@ export async function updateCode(code, changes) {
   return findByCode(code);
 }
 
+// M2A2 Q15: one page of a user's codes, oldest first, plus the total count.
+export async function listByUser(userId, limit, offset) {
+  const { rows, count } = await Url.findAndCountAll({
+    where: { user_id: userId },
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+    raw: true,
+  });
+  return { rows, total: count };
+}
+
 // Returns true if a row was removed, false if the code did not exist.
 export async function deleteByCode(code) {
   const count = await Url.destroy({ where: { short_code: code } });

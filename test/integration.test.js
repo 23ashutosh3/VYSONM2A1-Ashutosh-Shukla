@@ -382,3 +382,28 @@ test('the owner can make a code inactive and then active again', async () => {
   redirectResponse = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
   assert.equal(redirectResponse.status, 302);
 });
+
+// M2A2 Q15: GET /urls lists all of a user's short codes, page by page.
+
+function listAs(user, query = '') {
+  return fetch(`${baseUrl}/urls${query}`, { headers: { 'x-api-key': user.api_key } });
+}
+
+test('a user can list all of their short codes page by page', async () => {
+  const dave = await User.create({ email: 'dave@example.com', name: 'Dave', api_key: randomBytes(16).toString('hex') });
+  const codes = [];
+  for (let i = 0; i < 3; i += 1) {
+    codes.push((await (await shortenAs(dave, randomUrl())).json()).short_code);
+  }
+  await shortenAs(bob, randomUrl());
+
+  const first = await (await listAs(dave, '?limit=2')).json();
+  assert.equal(first.total, 3);
+  assert.deepEqual(first.urls.map((url) => url.short_code), codes.slice(0, 2));
+  assert.equal(first.urls[0].user_id, dave.id);
+  assert.equal(first.urls[0].has_password, false);
+  assert.equal('password_hash' in first.urls[0], false);
+
+  const second = await (await listAs(dave, '?limit=2&page=2')).json();
+  assert.deepEqual(second.urls.map((url) => url.short_code), codes.slice(2));
+});

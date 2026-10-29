@@ -8,5 +8,6 @@ router.post('/shorten/batch', controller.shortenBatch);
 router.get('/redirect', controller.redirect);
 router.patch('/shorten/:code', controller.update);
 router.delete('/shorten/:code', controller.remove);
+router.get('/urls', controller.list);
 
 export default router;

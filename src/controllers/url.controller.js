@@ -225,3 +225,31 @@ export async function remove(req, res) {
   // 204: the delete worked and there is nothing left to send back.
   res.status(204).end();
 }
+
+const DEFAULT_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 1000;
+
+// M2A2 Q15: lists every short code of the api key's user. A user can have
+// thousands, so the list is paged with ?page= and ?limit=.
+export async function list(req, res) {
+  const user = await User.findByApiKey(req.get("x-api-key"));
+  if (!user) {
+    throw new HttpError(401, "A valid x-api-key header is required");
+  }
+
+  const page = Number(req.query.page ?? 1);
+  const limit = Number(req.query.limit ?? DEFAULT_PAGE_SIZE);
+  if (!Number.isInteger(page) || page < 1) {
+    throw new HttpError(400, '"page" must be a positive integer');
+  }
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
+    throw new HttpError(400, `"limit" must be an integer from 1 to ${MAX_PAGE_SIZE}`);
+  }
+
+  const { rows, total } = await Url.listByUser(user.id, limit, (page - 1) * limit);
+
+  // Every field is shown, except the password hash: only whether one is set.
+  const urls = rows.map(({ password_hash, ...row }) => ({ ...row, has_password: password_hash !== null }));
+
+  res.json({ page, limit, total, urls });
+}
