@@ -380,3 +380,25 @@ curl -i http://localhost:3000/health
 `/health` returns **200 OK** with `{"status":"ok","server":"up","database":"up"}`.
 
 ![Q16](screenshots/Health.png)
+
+
+## [Q17 BONUS] Go to https://tinyurl.com/ and see what other features it supports. List down 3 features which are present there but not in our app as of now.
+
+Features TinyURL supports:
+
+1. **QR code:** it generates a QR code for every short link.
+2. **Alias:** it supports custom aliases. *(We already have this in our app.)*
+3. **Share and copy options:** it has multiple options to share and copy the short link.
+4. **Authentication:** users can sign up and log in.
+5. **Branded domains:** it supports short links on your own domain.
+
+
+
+
+[Q18 BONUS] Go to https://short.io/ and see what other features it supports. List down 3 features which are present there but not in our app as of now.
+
+Features Short.io supports:
+
+1. **Geo-targeting:** one short link opens a different page for each country. For example, users in India go to the India page and users in the US go to the US page.
+2. **Device targeting:** one short link opens a different page on iPhone and on Android. It can also open the mobile app directly.
+3. **A/B testing:** one short link sends half the users to page A and half to page B, so you can see which page works better.
