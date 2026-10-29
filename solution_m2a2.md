@@ -321,3 +321,15 @@ Alice's short code `igdjmyIJ` is edited with `PATCH /shorten/igdjmyIJ`:
 4. `/redirect` returns **302 Found** to `https://example.com`.
 
 ![Q13](screenshots/Q13.png)
+
+
+[Q14] Support adding a password on the short code while creating and editing them. The /redirect endpoint should also take in this optional parameter to decide whether to show the original URL or return an error.
+
+Added the changes 
+
+### Screenshots
+
+1. `POST /shorten` with `"password": "secret"` creates the short code.
+2. `PATCH /shorten/mSrNv8cF` with `"password": "newpass"` changes the password.
+
+![Q14](screenshots/q14.png)
