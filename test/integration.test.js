@@ -355,3 +355,30 @@ test('batch shortening returns 207 and says which URLs failed and why', async ()
   assert.equal(invalid.status, 400);
   assert.equal(invalid.error, '"not-a-url" is not a valid URL');
 });
+
+// M2A2 Q13: PATCH /shorten/:code edits expires_at to make a code inactive or active again.
+
+function editAs(user, shortCode, body) {
+  return fetch(`${baseUrl}/shorten/${shortCode}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': user.api_key },
+    body: JSON.stringify(body),
+  });
+}
+
+test('the owner can make a code inactive and then active again', async () => {
+  const { short_code: shortCode } = await (await shortenAs(alice, randomUrl())).json();
+
+  // Expiry in the past: the code is inactive.
+  const inactive = await editAs(alice, shortCode, { expires_at: hoursFromNow(-1) });
+  assert.equal(inactive.status, 200);
+  let redirectResponse = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
+  assert.equal(redirectResponse.status, 410);
+
+  // Expiry removed: the code is active again.
+  const active = await editAs(alice, shortCode, { expires_at: null });
+  assert.equal(active.status, 200);
+  assert.equal((await active.json()).expires_at, null);
+  redirectResponse = await fetch(`${baseUrl}/redirect?code=${shortCode}`, { redirect: 'manual' });
+  assert.equal(redirectResponse.status, 302);
+});

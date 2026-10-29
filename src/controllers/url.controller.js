@@ -155,6 +155,34 @@ export async function redirect(req, res) {
   res.redirect(302, row.original_url);
 }
 
+// M2A2 Q13: the owner edits expires_at. A time in the past makes the code
+// inactive, a future time (or null for no expiry) makes it active again.
+export async function update(req, res) {
+  const { code } = req.params;
+
+  const row = await Url.findByCode(code);
+  if (!row) {
+    throw new HttpError(404, `No URL found for code "${code}"`);
+  }
+
+  const user = await User.findByApiKey(req.get("x-api-key"));
+  if (!user || row.user_id !== user.id) {
+    throw new HttpError(403, "You do not own this short code");
+  }
+
+  if (!req.body || !("expires_at" in req.body)) {
+    throw new HttpError(400, '"expires_at" is required');
+  }
+
+  const updated = await Url.updateExpiresAt(code, parseExpiresAt(req.body.expires_at));
+
+  res.json({
+    short_code: updated.short_code,
+    original_url: updated.original_url,
+    expires_at: updated.expires_at,
+  });
+}
+
 // Named remove because delete is a reserved word in JavaScript.
 export async function remove(req, res) {
   const { code } = req.params;

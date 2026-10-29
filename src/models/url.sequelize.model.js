@@ -117,6 +117,12 @@ export async function recordVisit(code) {
   return findByCode(code);
 }
 
+// M2A2 Q13: sets a new expires_at and returns the updated row.
+export async function updateExpiresAt(code, expiresAt) {
+  await Url.update({ expires_at: expiresAt }, { where: { short_code: code } });
+  return findByCode(code);
+}
+
 // Returns true if a row was removed, false if the code did not exist.
 export async function deleteByCode(code) {
   const count = await Url.destroy({ where: { short_code: code } });

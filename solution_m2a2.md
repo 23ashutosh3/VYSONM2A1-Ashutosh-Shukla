@@ -293,3 +293,31 @@ Files and functions changed:
 - `src/models/user.sequelize.model.js`: new `tier` column (default `hobby`), added to existing `users` tables on startup
 - `src/controllers/url.controller.js`: `shortenBatch()` returns 403 if the user is not on the `enterprise` tier
 - `test/integration.test.js`: new enterprise user `carol`, the batch test now sends her api key
+
+
+[Q13] Allow edit requests on short codes. Add tests as well.
+
+A future time, or null, makes it active again.
+
+Only the owner can edit, the same rule as delete. Anyone else gets a 403.
+A missing expires_at or a bad date returns 400, and an unknown code returns 404.
+
+Files changed:
+
+src/routes/index.js: new PATCH /shorten/:code route.
+src/controllers/url.controller.js: new update() function.
+src/models/url.sequelize.model.js: new updateExpiresAt() function.
+test/integration.test.js: two new tests.
+The owner makes a code inactive (410), then active again (302).
+Another user trying to edit gets a 403 and the code stays unchanged.
+
+### Screenshots
+
+Alice's short code `igdjmyIJ` is edited with `PATCH /shorten/igdjmyIJ`:
+
+1. `expires_at` set to a past date (2020-01-01), so the code is now inactive.
+2. `/redirect` returns **410 Gone** with "Short code has expired".
+3. `expires_at` set back to `null`, so the code is active again.
+4. `/redirect` returns **302 Found** to `https://example.com`.
+
+![Q13](screenshots/Q13.png)
