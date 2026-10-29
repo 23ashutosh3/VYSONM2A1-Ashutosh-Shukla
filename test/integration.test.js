@@ -407,3 +407,11 @@ test('a user can list all of their short codes page by page', async () => {
   const second = await (await listAs(dave, '?limit=2&page=2')).json();
   assert.deepEqual(second.urls.map((url) => url.short_code), codes.slice(2));
 });
+
+// M2A2 Q16: /health reports the server and database status.
+
+test('health check reports the server and database as up', async () => {
+  const response = await fetch(`${baseUrl}/health`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: 'ok', server: 'up', database: 'up' });
+});

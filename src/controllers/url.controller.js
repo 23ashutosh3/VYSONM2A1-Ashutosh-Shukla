@@ -3,6 +3,7 @@
 import * as Url from "../models/url.sequelize.model.js";
 import * as User from "../models/user.sequelize.model.js";
 import { HttpError } from "../middleware/errorHandler.js";
+import { sequelize } from "../sequelize.js";
 
 // Only http(s) is accepted; javascript: and data: URLs would make the
 // redirect endpoint a vector for running script in a visitor's browser.
@@ -252,4 +253,22 @@ export async function list(req, res) {
   const urls = rows.map(({ password_hash, ...row }) => ({ ...row, has_password: password_hash !== null }));
 
   res.json({ page, limit, total, urls });
+}
+
+// M2A2 Q16: answering at all means the server is up; authenticate() runs a
+// test query to check the database too. 503 if the database is down.
+export async function health(req, res) {
+  let database = "up";
+  try {
+    await sequelize.authenticate();
+  } catch (err) {
+    console.error(err);
+    database = "down";
+  }
+
+  res.status(database === "up" ? 200 : 503).json({
+    status: database === "up" ? "ok" : "error",
+    server: "up",
+    database,
+  });
 }

@@ -357,4 +357,26 @@ curl "http://localhost:3000/urls?page=1&limit=5" -H "x-api-key: 49d42c77fc660ecc
 
 Page 1 with `limit=5` returns 5 of the user's 7 short codes (`total: 7`).
 
-![Q15](screenshots/Q15.png)
+![Q15](screenshots/q15.png)
+
+
+[Q16 BONUS] Create a /health endpoint that checks everything is running smoothly, i.e. whether the server is up and running + verifies database connectivity.
+New endpoint `GET /health`. If it answers, the server is up. It also runs a test query on the database (`sequelize.authenticate()`). Returns 200 when both are up, 503 if the database is down.
+
+Files changed:
+
+src/routes/index.js: new GET /health route.
+src/controllers/url.controller.js: new health() function.
+test/integration.test.js: one new test, health check returns 200 with server and database up.
+
+### Curl
+
+```
+curl -i http://localhost:3000/health
+```
+
+### Screenshots
+
+`/health` returns **200 OK** with `{"status":"ok","server":"up","database":"up"}`.
+
+![Q16](screenshots/Health.png)
