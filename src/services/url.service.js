@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { UniqueConstraintError } from 'sequelize';
 // Q6: the raw-SQL model is kept for reference; Sequelize is used instead.
 // import * as Url from '../models/url.model.js';
 import * as Url from '../models/url.sequelize.model.js';
@@ -81,24 +82,32 @@ function generateCode() {
 async function createCode(originalUrl, userId, expiresAt, customCode, passwordHash = null) {
   // UNIQUE(short_code) is the real guard; retry on the rare collision.
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const row = await Url.insert({
-      original_url: originalUrl,
-      short_code: customCode ?? generateCode(),
-      created_at: toIsoText(),
-      // M2A2 Q5: owner of the code, from the api_key header.
-      user_id: userId,
-      // M2A2 Q8: optional expiry time.
-      expires_at: expiresAt,
-      password_hash: passwordHash,
-    });
-    if (row) return row;
-
-    // A custom code is not retried: the user picked it, so it is just taken.
-    if (customCode) {
-      throw new HttpError(409, `Short code "${customCode}" is not available, try another one`);
+    try {
+      return await Url.insert({
+        original_url: originalUrl,
+        short_code: customCode ?? generateCode(),
+        created_at: toIsoText(),
+        // M2A2 Q5: owner of the code, from the api_key header.
+        user_id: userId,
+        // M2A2 Q8: optional expiry time.
+        expires_at: expiresAt,
+        password_hash: passwordHash,
+      });
+    } catch (err) {
+      if (!(err instanceof UniqueConstraintError)) throw err;
+      // A custom code is not retried: the user picked it, so it is just taken.
+      if (customCode) {
+        throw new HttpError(409, `Short code "${customCode}" is not available, try another one`);
+      }
     }
   }
   throw new Error('Could not generate a unique short code');
+}
+
+// No api key means no user, without asking the database.
+async function findUser(apiKey) {
+  if (!apiKey) return null;
+  return User.findByApiKey(apiKey);
 }
 
 // M2A2 Q5: only the user who owns the code can change or delete it.
@@ -108,7 +117,7 @@ async function findOwnedCode(code, apiKey) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
 
-  const user = await User.findByApiKey(apiKey);
+  const user = await findUser(apiKey);
   if (!user || row.user_id !== user.id) {
     throw new HttpError(403, 'You do not own this short code');
   }
@@ -122,7 +131,7 @@ export async function shorten({ url, expiresAt, customCode, password, apiKey }) 
   const passwordHash = parsePassword(password);
 
   // M2A2 Q5: the api key comes from the x-api-key header, not the body or URL.
-  const user = await User.findByApiKey(apiKey);
+  const user = await findUser(apiKey);
 
   return createCode(target, user?.id ?? null, expires, customCode ?? null, passwordHash);
 }
@@ -131,7 +140,7 @@ export async function shorten({ url, expiresAt, customCode, password, apiKey }) 
 // does not stop the others; returns one Promise.allSettled outcome per item.
 export async function shortenBatch(apiKey, urls) {
   // M2A2 Q12: bulk creation is only for the enterprise tier.
-  const user = await User.findByApiKey(apiKey);
+  const user = await findUser(apiKey);
   if (user?.tier !== 'enterprise') {
     throw new HttpError(403, 'Bulk creation is only available on the enterprise tier');
   }
@@ -161,10 +170,11 @@ export async function resolve(code, password) {
   }
 
   // Also counts the visit: click_count and last_accessed_at (M2A2 Q3).
-  const row = await Url.recordVisit(code.trim(), toIsoText());
-  if (!row) {
+  const [count] = await Url.incrementVisit(code.trim(), toIsoText());
+  if (count === 0) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
+  const row = await Url.findByCode(code.trim());
 
   // M2A2 Q8: 410 Gone, the code existed but has expired.
   if (isExpired(row)) {
@@ -193,7 +203,8 @@ export async function update(code, apiKey, body) {
     throw new HttpError(400, '"expires_at" or "password" is required');
   }
 
-  return Url.updateCode(code, changes);
+  await Url.updateCode(code, changes);
+  return Url.findByCode(code);
 }
 
 export async function remove(code, apiKey) {
@@ -204,7 +215,7 @@ export async function remove(code, apiKey) {
 // M2A2 Q15: one page of the api key's user's short codes. A user can have
 // thousands, so the list is paged with page and limit.
 export async function list(apiKey, pageParam, limitParam) {
-  const user = await User.findByApiKey(apiKey);
+  const user = await findUser(apiKey);
   if (!user) {
     throw new HttpError(401, 'A valid x-api-key header is required');
   }
@@ -218,6 +229,6 @@ export async function list(apiKey, pageParam, limitParam) {
     throw new HttpError(400, `"limit" must be an integer from 1 to ${MAX_PAGE_SIZE}`);
   }
 
-  const { rows, total } = await Url.listByUser(user.id, limit, (page - 1) * limit);
-  return { page, limit, total, rows };
+  const { rows, count } = await Url.listByUser(user.id, limit, (page - 1) * limit);
+  return { page, limit, total: count, rows };
 }
