@@ -5,6 +5,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 import { blacklist } from './middleware/blacklist.js';
 import { responseTime } from './middleware/responseTime.js';
 import { timed, logMiddlewareTimings } from './middleware/middlewareTimer.js';
+import { reportToSentry } from './middleware/observability.js';
 
 const app = express();
 
@@ -34,6 +35,9 @@ app.use(timed('urlencoded', express.urlencoded({ extended: false })));
 app.use('/', routes);
 
 app.use(notFound);
+
+// M2A3 Q10: before errorHandler, so every error reaches Sentry first.
+app.use(reportToSentry);
 app.use(errorHandler);
 
 export default app;
