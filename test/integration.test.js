@@ -145,7 +145,11 @@ test('deleting a short code removes it', async () => {
 test('deleting a short code that does not exist returns 404', async () => {
   const missingCode = 'no-such-';
 
-  const response = await fetch(`${baseUrl}/shorten/${missingCode}`, { method: 'DELETE' });
+  // M2A3 Q3: a valid api key, so the request gets past requireApiKey.
+  const response = await fetch(`${baseUrl}/shorten/${missingCode}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': alice.api_key },
+  });
 
   assert.equal(response.status, 404);
   const body = await response.json();
@@ -249,12 +253,13 @@ test('shortening without an api key leaves the code without an owner', async () 
   assert.equal(row.user_id, null);
 });
 
-test('deleting without an api key returns 403 and keeps the code', async () => {
+// M2A3 Q3: requireApiKey stops the request before the delete runs.
+test('deleting without an api key returns 401 and keeps the code', async () => {
   const { short_code: shortCode } = await (await shortenAs(alice, randomUrl())).json();
 
   const response = await deleteAs(null, shortCode);
-  assert.equal(response.status, 403);
-  assert.equal((await response.json()).error, 'You do not own this short code');
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).error, 'A valid x-api-key header is required');
 
   assert.notEqual(await findByCode(shortCode), null);
 });
