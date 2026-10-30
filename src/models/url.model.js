@@ -1,31 +1,48 @@
-import { db } from '../db.js';
+import { sequelize } from '../sequelize.js';
+import { Url } from '../schemas/index.js';
 
-// Q6: raw-SQL version of url.sequelize.model.js, kept for reference only.
-// Database queries only; code generation and retries live in the service.
+// Sequelize version of legacy/url.raw.model.js: database queries on the
+// url_shortner table only. The table is defined in schemas/url.schema.js, and
+// every rule (code generation, retries, expiry, passwords) lives in
+// services/url.service.js.
 
-const insertStmt = db.prepare(
-  'INSERT INTO url_shortner (original_url, short_code) VALUES (?, ?) RETURNING *',
-);
-const findByCodeStmt = db.prepare('SELECT * FROM url_shortner WHERE short_code = ?');
-const findByUrlStmt = db.prepare('SELECT * FROM url_shortner WHERE original_url = ? LIMIT 1');
-const deleteByCodeStmt = db.prepare('DELETE FROM url_shortner WHERE short_code = ?');
-
-// Throws "UNIQUE constraint failed" if short_code is already taken.
-export function insert(originalUrl, shortCode) {
-  return insertStmt.get(originalUrl, shortCode);
-}
-
-// Returns the row, or undefined if the code does not exist.
+// Resolves to the row, or null if the code does not exist.
 export function findByCode(code) {
-  return findByCodeStmt.get(code);
+  return Url.findOne({ where: { short_code: code }, raw: true });
 }
 
-// Returns the first row for this URL, or undefined if there is none.
-export function findByUrl(url) {
-  return findByUrlStmt.get(url);
+// Rejects with UniqueConstraintError if short_code is already taken.
+export async function insert(fields) {
+  const row = await Url.create(fields);
+  return row.get({ plain: true });
 }
 
-// Returns { changes } with the number of rows removed.
+// M2A2 Q3: click_count + 1 runs inside the database, so two visits at the
+// same moment are both counted. Resolves to [number of rows updated].
+export function incrementVisit(code, accessedAt) {
+  return Url.update(
+    { click_count: sequelize.literal('click_count + 1'), last_accessed_at: accessedAt },
+    { where: { short_code: code } },
+  );
+}
+
+// M2A2 Q13: sets new values (expires_at, Q14 password_hash).
+export function updateCode(code, changes) {
+  return Url.update(changes, { where: { short_code: code } });
+}
+
+// M2A2 Q15: one page of a user's codes, oldest first, plus the total count.
+export function listByUser(userId, limit, offset) {
+  return Url.findAndCountAll({
+    where: { user_id: userId },
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+    raw: true,
+  });
+}
+
+// Resolves to the number of rows removed.
 export function deleteByCode(code) {
-  return deleteByCodeStmt.run(code);
+  return Url.destroy({ where: { short_code: code } });
 }

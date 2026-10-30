@@ -101,10 +101,18 @@ src/
   app.js                         Express app setup
   sequelize.js                   Sequelize (ORM) connection, used by the app
   db.js                          raw SQLite connection (kept for reference, not used)
-  routes/index.js                POST /shorten, GET /redirect
-  controllers/url.controller.js  request validation and responses
-  models/url.sequelize.model.js  Sequelize model and queries, used by the app
-  models/url.model.js            raw SQL queries (kept for reference, not used)
+  routes/index.js                maps each endpoint to a controller
+  controllers/url.controller.js  reads the request, calls a service, sends the response
+  services/url.service.js        validation and business rules, calls the models
+  services/health.service.js     database check for GET /health
+  models/url.model.js            database queries on url_shortner
+  models/user.model.js           database queries on users
+  schemas/url.schema.js          url_shortner table definition
+  schemas/user.schema.js         users table definition
+  schemas/index.js               creates the tables and adds missing columns
+  utils/password.js              password hashing and checking
+  utils/time.js                  ISO-8601 time text and expiry check
+  legacy/url.raw.model.js        raw SQL queries (kept for reference, not used)
 test/integration.test.js         integration test
 loadtest/                        load test script, results and graph script
 data/url_shortener.db            SQLite database

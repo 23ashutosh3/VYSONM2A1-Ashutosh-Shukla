@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { UniqueConstraintError } from 'sequelize';
 // Q6: the raw-SQL model is kept for reference; Sequelize is used instead.
-// import * as Url from '../models/url.model.js';
-import * as Url from '../models/url.sequelize.model.js';
-import * as User from '../models/user.sequelize.model.js';
+// import * as Url from '../legacy/url.raw.model.js';
+import * as Url from '../models/url.model.js';
+import * as User from '../models/user.model.js';
 import { HttpError } from '../middleware/errorHandler.js';
 import { checkPassword, hashPassword } from '../utils/password.js';
 import { isExpired, toIsoText } from '../utils/time.js';
