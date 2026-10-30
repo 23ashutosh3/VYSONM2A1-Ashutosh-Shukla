@@ -148,3 +148,17 @@ Before:  requireApiKey → DB call → req.user
 After:   requireApiKey → DB call → req.user
          requireEnterprise → req.user
          controller → service(req.user)               ← no DB call
+
+
+[Q8] What should be the order of the middlewares that you implemented above (logging, authentication, blacklist, etc.) ?
+
+Request
+  │
+  1. responseTime        app.js
+  2. requestLogger       app.js
+  3. blacklist           app.js
+  4. express.json / urlencoded
+  5. requireApiKey       routes (protected routes only)
+  6. requireEnterprise   routes (batch only)
+  7. controller
+  8. notFound / errorHandler
