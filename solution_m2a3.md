@@ -66,3 +66,15 @@ app.use(['/shorten', '/redirect'], requestLogger); // /shorten, /shorten/batch, 
 - `src/services/user.service.js`: new `findByApiKey()`, used by the middleware to look up the user
 - `src/routes/index.js`: `requireApiKey` added to `POST /shorten/batch`, `PATCH /shorten/:code`, `DELETE /shorten/:code` and `GET /urls`
 - `test/integration.test.js`: deleting without an api key now expects `401` instead of `403`; deleting a code that does not exist now sends a valid api key, so it still gets `404`
+
+---
+
+## Q4
+
+> [Q4] In the bulk endpoint, move the authorization logic to a middleware (that checks if the plan is enterprise or not). This makes it reusable for future.
+
+### Files changed
+
+- `src/middleware/requireEnterprise.js`: new middleware, returns `403` unless `req.user.tier` is `enterprise`; runs after `requireApiKey`, which sets `req.user`
+- `src/routes/index.js`: `POST /shorten/batch` now uses `requireApiKey, requireEnterprise`; any future enterprise-only route can use the same two middlewares
+- `src/services/url.service.js`: removed the enterprise tier check from `shortenBatch()`
