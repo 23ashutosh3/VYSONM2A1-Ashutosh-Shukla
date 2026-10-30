@@ -131,16 +131,19 @@ curl -i localhost:3000/health
 - `src/middleware/responseTime.js`: new middleware, saves the start time and adds the `X-Response-Time` header just before the response is sent
 - `src/app.js`: `responseTime` added as the first middleware, so the time covers every other middleware and the route
 
+---
 
-[Q7] When user details are fetched from the API key the first time, set this user object in the request itself so it goes on to be used directly in the next middleware.
+## Q7
+
+> [Q7] When user details are fetched from the API key the first time, set this user object in the request itself so it goes on to be used directly in the next middleware.
 
 Already cover half part in q3 and q4
-
 
 Before, the controller gave the service the API key (a string such as "a1b2c3..."), and the service had to ask the database "which user has this key?"
 
 Now, the controller gives the service the user itself, which requireApiKey already fetched and stored in req.user. The service doesn't need to ask the database again.
 
+```
 Before:  requireApiKey → DB call → req.user
          requireEnterprise → req.user
          service → findUser(apiKey) → DB call again   ← duplicate
@@ -148,10 +151,15 @@ Before:  requireApiKey → DB call → req.user
 After:   requireApiKey → DB call → req.user
          requireEnterprise → req.user
          controller → service(req.user)               ← no DB call
+```
 
+---
 
-[Q8] What should be the order of the middlewares that you implemented above (logging, authentication, blacklist, etc.) ?
+## Q8
 
+> [Q8] What should be the order of the middlewares that you implemented above (logging, authentication, blacklist, etc.) ?
+
+```
 Request
   │
   1. responseTime        app.js
@@ -162,3 +170,36 @@ Request
   6. requireEnterprise   routes (batch only)
   7. controller
   8. notFound / errorHandler
+```
+
+---
+
+## Q9 (Bonus)
+
+> [Q9 BONUS] Time each middleware and log how much time each one is taking for internal tracking purposes.
+
+Each middleware now has its own timing, and one line per request is printed in the server log once the response has been sent
+
+### Screenshots
+
+![response with middleware](screenshots/m2a3/responseWithMiddleware.png)
+
+- `GET /health` returns `X-Response-Time: 7.255ms` in the response header.
+- The api keys are read from the `users` table, and `GET /urls` is called with one of them (`x-api-key`), so the request goes through `requireApiKey` and returns that user's short codes.
+
+![middleware response](screenshots/m2a3/middlewareRes.png)
+
+Every API called one by one, showing its status and `X-Response-Time`:
+
+| API | Status | X-Response-Time | Why this status |
+| --- | --- | --- | --- |
+| `GET /health` | 200 | 1.590ms | server and database are up |
+| `POST /shorten` | 201 | 3.753ms | new short code created |
+| `GET /redirect` | 302 | 7.513ms | redirects to the original URL |
+| `GET /urls` | 200 | 5.473ms | valid api key, list returned |
+| `PATCH /shorten/:code` | 200 | 5.186ms | owner updated the code |
+| `POST /shorten/batch` | 403 | 3.725ms | stopped by `requireEnterprise`, the user is on `hobby` |
+| `DELETE /shorten/:code` | 204 | 3.442ms | owner deleted the code |
+| `GET /urls` (bad key) | 401 | 2.313ms | stopped by `requireApiKey` |
+
+The requests stopped by a middleware (403, 401) are faster, because the controller never runs.

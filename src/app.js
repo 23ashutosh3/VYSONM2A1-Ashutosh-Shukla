@@ -4,6 +4,7 @@ import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { blacklist } from './middleware/blacklist.js';
 import { responseTime } from './middleware/responseTime.js';
+import { timed, logMiddlewareTimings } from './middleware/middlewareTimer.js';
 
 const app = express();
 
@@ -11,18 +12,22 @@ const app = express();
 // X-Forwarded-For to get the visitor's IP instead of the proxy's.
 app.set('trust proxy', true);
 
+// M2A3 Q9: prints each middleware's time (wrapped with timed() below) once
+// the response is sent.
+app.use(logMiddlewareTimings);
+
 // M2A3 Q6: first, so the elapsed time covers every other middleware too.
-app.use(responseTime);
+app.use(timed('responseTime', responseTime));
 
 // So every request is logged, including bad JSON and unknown routes.
-app.use(requestLogger);
+app.use(timed('requestLogger', requestLogger));
 
 // M2A3 Q5: after the logger, so blocked requests are still logged, and before
 // the routes, so a blocked key never reaches any endpoint.
-app.use(blacklist);
+app.use(timed('blacklist', blacklist));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(timed('json', express.json()));
+app.use(timed('urlencoded', express.urlencoded({ extended: false })));
 
 // Routes sit at the root so the paths match the spec exactly:
 // POST /shorten and GET /redirect?code={code}
