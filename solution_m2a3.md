@@ -53,3 +53,16 @@ router.post('/shorten', requestLogger, controller.shorten);
 ```js
 app.use(['/shorten', '/redirect'], requestLogger); // /shorten, /shorten/batch, /shorten/:code, /redirect
 ```
+
+---
+
+## Q3
+
+> [Q3] Create a middleware that checks whether the provided API key is valid or not. If not, return the request at this step itself without running the endpoint logic.
+
+### Files changed
+
+- `src/middleware/requireApiKey.js`: new middleware, returns `401` if the `x-api-key` header is missing or invalid, so the controller never runs; otherwise sets `req.user` and calls `next()`
+- `src/services/user.service.js`: new `findByApiKey()`, used by the middleware to look up the user
+- `src/routes/index.js`: `requireApiKey` added to `POST /shorten/batch`, `PATCH /shorten/:code`, `DELETE /shorten/:code` and `GET /urls`
+- `test/integration.test.js`: deleting without an api key now expects `401` instead of `403`; deleting a code that does not exist now sends a valid api key, so it still gets `404`
