@@ -2,6 +2,7 @@ import express from 'express';
 import routes from './routes/index.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { blacklist } from './middleware/blacklist.js';
 
 const app = express();
 
@@ -11,6 +12,10 @@ app.set('trust proxy', true);
 
 // First, so every request is logged, including bad JSON and unknown routes.
 app.use(requestLogger);
+
+// M2A3 Q5: after the logger, so blocked requests are still logged, and before
+// the routes, so a blocked key never reaches any endpoint.
+app.use(blacklist);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -78,3 +78,16 @@ app.use(['/shorten', '/redirect'], requestLogger); // /shorten, /shorten/batch, 
 - `src/middleware/requireEnterprise.js`: new middleware, returns `403` unless `req.user.tier` is `enterprise`; runs after `requireApiKey`, which sets `req.user`
 - `src/routes/index.js`: `POST /shorten/batch` now uses `requireApiKey, requireEnterprise`; any future enterprise-only route can use the same two middlewares
 - `src/services/url.service.js`: removed the enterprise tier check from `shortenBatch()`
+
+---
+
+## Q5
+
+> [Q5] Create a blacklist middleware that checks the API key from a config file where we can define a list of notorious user keys to be blocked. This file can be read at runtime (i.e. not static in code).
+
+### Files changed
+
+- `config/blacklist.json`: new config file, keys listed in `blockedApiKeys` are blocked
+- `src/services/blacklist.service.js`: new `isBlocked()`, reads `config/blacklist.json` on every request, so a key added to the file is blocked without restarting the server
+- `src/middleware/blacklist.js`: new middleware, returns `403` if the `x-api-key` is in the blacklist, so the endpoint never runs
+- `src/app.js`: `blacklist` added after `requestLogger` (blocked requests are still logged) and before the routes, so it checks every endpoint
