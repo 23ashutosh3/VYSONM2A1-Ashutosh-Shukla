@@ -12,7 +12,7 @@ process.env.DATABASE_PATH = join(dir, 'test.db');
 
 const { default: app } = await import('../src/app.js');
 const { findByCode } = await import('../src/models/url.sequelize.model.js');
-const { User } = await import('../src/models/user.sequelize.model.js');
+const { User } = await import('../src/schemas/index.js');
 
 const INPUT_URL = 'https://example.com';
 
