@@ -111,14 +111,14 @@ async function findUser(apiKey) {
 }
 
 // M2A2 Q5: only the user who owns the code can change or delete it.
-async function findOwnedCode(code, apiKey) {
+// M2A3 Q7: user is req.user, already fetched by requireApiKey.
+async function findOwnedCode(code, user) {
   const row = await Url.findByCode(code);
   if (!row) {
     throw new HttpError(404, `No URL found for code "${code}"`);
   }
 
-  const user = await findUser(apiKey);
-  if (!user || row.user_id !== user.id) {
+  if (row.user_id !== user.id) {
     throw new HttpError(403, 'You do not own this short code');
   }
 
@@ -138,10 +138,9 @@ export async function shorten({ url, expiresAt, customCode, password, apiKey }) 
 
 // Batch: shortens many URLs. Each item is handled on its own, so one bad URL
 // does not stop the others; returns one Promise.allSettled outcome per item.
-export async function shortenBatch(apiKey, urls) {
-  // M2A3 Q4: the enterprise tier check is done by the requireEnterprise middleware.
-  const user = await findUser(apiKey);
-
+// M2A3 Q4: the enterprise tier check is done by the requireEnterprise middleware.
+// M2A3 Q7: user is req.user, already fetched by requireApiKey.
+export async function shortenBatch(user, urls) {
   if (!Array.isArray(urls) || urls.length === 0) {
     throw new HttpError(400, '"urls" must be a non-empty array');
   }
@@ -189,8 +188,8 @@ export async function resolve(code, password) {
 // M2A2 Q13: the owner edits expires_at. A time in the past makes the code
 // inactive, a future time (or null for no expiry) makes it active again.
 // M2A2 Q14: password can be edited too (null removes it).
-export async function update(code, apiKey, body) {
-  await findOwnedCode(code, apiKey);
+export async function update(code, user, body) {
+  await findOwnedCode(code, user);
 
   const changes = {};
   if (body && 'expires_at' in body) changes.expires_at = parseExpiresAt(body.expires_at);
@@ -204,19 +203,15 @@ export async function update(code, apiKey, body) {
   return Url.findByCode(code);
 }
 
-export async function remove(code, apiKey) {
-  await findOwnedCode(code, apiKey);
+export async function remove(code, user) {
+  await findOwnedCode(code, user);
   await Url.deleteByCode(code);
 }
 
-// M2A2 Q15: one page of the api key's user's short codes. A user can have
-// thousands, so the list is paged with page and limit.
-export async function list(apiKey, pageParam, limitParam) {
-  const user = await findUser(apiKey);
-  if (!user) {
-    throw new HttpError(401, 'A valid x-api-key header is required');
-  }
-
+// M2A2 Q15: one page of the user's short codes. A user can have thousands,
+// so the list is paged with page and limit.
+// M2A3 Q7: user is req.user, already fetched by requireApiKey.
+export async function list(user, pageParam, limitParam) {
   const page = Number(pageParam ?? 1);
   const limit = Number(limitParam ?? DEFAULT_PAGE_SIZE);
   if (!Number.isInteger(page) || page < 1) {

@@ -130,3 +130,21 @@ curl -i localhost:3000/health
 
 - `src/middleware/responseTime.js`: new middleware, saves the start time and adds the `X-Response-Time` header just before the response is sent
 - `src/app.js`: `responseTime` added as the first middleware, so the time covers every other middleware and the route
+
+
+[Q7] When user details are fetched from the API key the first time, set this user object in the request itself so it goes on to be used directly in the next middleware.
+
+Already cover half part in q3 and q4
+
+
+Before, the controller gave the service the API key (a string such as "a1b2c3..."), and the service had to ask the database "which user has this key?"
+
+Now, the controller gives the service the user itself, which requireApiKey already fetched and stored in req.user. The service doesn't need to ask the database again.
+
+Before:  requireApiKey → DB call → req.user
+         requireEnterprise → req.user
+         service → findUser(apiKey) → DB call again   ← duplicate
+
+After:   requireApiKey → DB call → req.user
+         requireEnterprise → req.user
+         controller → service(req.user)               ← no DB call

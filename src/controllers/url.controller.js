@@ -28,7 +28,7 @@ export async function shorten(req, res) {
 
 export async function shortenBatch(req, res) {
   const { urls } = req.body ?? {};
-  const settled = await UrlService.shortenBatch(req.get("x-api-key"), urls);
+  const settled = await UrlService.shortenBatch(req.user, urls);
 
   // Each result says which item it is (index, url, custom_code) so the
   // caller can see exactly which one failed and why.
@@ -71,7 +71,7 @@ export async function redirect(req, res) {
 }
 
 export async function update(req, res) {
-  const updated = await UrlService.update(req.params.code, req.get("x-api-key"), req.body);
+  const updated = await UrlService.update(req.params.code, req.user, req.body);
 
   res.json({
     short_code: updated.short_code,
@@ -82,14 +82,14 @@ export async function update(req, res) {
 
 // Named remove because delete is a reserved word in JavaScript.
 export async function remove(req, res) {
-  await UrlService.remove(req.params.code, req.get("x-api-key"));
+  await UrlService.remove(req.params.code, req.user);
 
   // 204: the delete worked and there is nothing left to send back.
   res.status(204).end();
 }
 
 export async function list(req, res) {
-  const { page, limit, total, rows } = await UrlService.list(req.get("x-api-key"), req.query.page, req.query.limit);
+  const { page, limit, total, rows } = await UrlService.list(req.user, req.query.page, req.query.limit);
 
   // Every field is shown, except the password hash: only whether one is set.
   const urls = rows.map(({ password_hash, ...row }) => ({ ...row, has_password: password_hash !== null }));
