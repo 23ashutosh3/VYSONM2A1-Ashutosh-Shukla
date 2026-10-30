@@ -139,11 +139,8 @@ export async function shorten({ url, expiresAt, customCode, password, apiKey }) 
 // Batch: shortens many URLs. Each item is handled on its own, so one bad URL
 // does not stop the others; returns one Promise.allSettled outcome per item.
 export async function shortenBatch(apiKey, urls) {
-  // M2A2 Q12: bulk creation is only for the enterprise tier.
+  // M2A3 Q4: the enterprise tier check is done by the requireEnterprise middleware.
   const user = await findUser(apiKey);
-  if (user?.tier !== 'enterprise') {
-    throw new HttpError(403, 'Bulk creation is only available on the enterprise tier');
-  }
 
   if (!Array.isArray(urls) || urls.length === 0) {
     throw new HttpError(400, '"urls" must be a non-empty array');
