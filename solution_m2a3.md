@@ -91,3 +91,42 @@ app.use(['/shorten', '/redirect'], requestLogger); // /shorten, /shorten/batch, 
 - `src/services/blacklist.service.js`: new `isBlocked()`, reads `config/blacklist.json` on every request, so a key added to the file is blocked without restarting the server
 - `src/middleware/blacklist.js`: new middleware, returns `403` if the `x-api-key` is in the blacklist, so the endpoint never runs
 - `src/app.js`: `blacklist` added after `requestLogger` (blocked requests are still logged) and before the routes, so it checks every endpoint
+
+---
+
+## Q6
+
+> [Q6] Store the start time when the request is passing through this new middleware. While coming back, see the end time and calculate the difference as the elapsed time. Add this to the response header.
+
+### Idea
+
+It works like a stopwatch: note the time when the request comes in, note the time again just before the response goes out, and subtract.
+
+It gives the **total** time of the request (all middleware + route together), not the time of each middleware separately.
+
+### Steps
+
+1. `responseTime` is the first middleware, so it runs first. It saves the start time: `start = 1000`.
+2. It replaces `res.writeHead` with its own function. This function does not run yet; it waits.
+3. It calls `next()`. `responseTime` is now finished.
+4. `requestLogger`, `blacklist`, `express.json()` and the route run one by one. They do nothing with the time; time just passes.
+5. The controller sends the response with `res.json()`. Before sending, Node always calls `res.writeHead()` to send the headers.
+6. `res.writeHead` is now our function from step 2, so it runs: end time `1001.6`, elapsed = `1001.6 - 1000` = `1.6 ms`.
+7. It adds the header `X-Response-Time: 1.600ms`, then sends the response.
+
+The function from step 2 still remembers `start`, even though `responseTime` has finished (a JavaScript closure).
+
+`res.on('finish')` is not used because it runs after the headers are already sent, so it is too late to add a header.
+
+### Example
+
+```bash
+curl -i localhost:3000/health
+```
+
+![response time](screenshots/m2a3/responseTime.png)
+
+### Files changed
+
+- `src/middleware/responseTime.js`: new middleware, saves the start time and adds the `X-Response-Time` header just before the response is sent
+- `src/app.js`: `responseTime` added as the first middleware, so the time covers every other middleware and the route
