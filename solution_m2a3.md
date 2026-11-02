@@ -203,3 +203,56 @@ Every API called one by one, showing its status and `X-Response-Time`:
 | `GET /urls` (bad key) | 401 | 2.313ms | stopped by `requireApiKey` |
 
 The requests stopped by a middleware (403, 401) are faster, because the controller never runs.
+
+---
+
+## Q10 (Bonus)
+
+> [Q10 BONUS] Create a middleware that sends data to an observability platform like Sentry, New Relic, Datadog, etc.
+
+Server errors (5xx) are sent to **Sentry**, with the method, URL, status and user (if known) as tags. 4xx errors are not sent, because they are the client's mistake (bad input, wrong key), not bugs.
+
+`SENTRY_DSN` is read from an environment variable, so it is never in the code. Without it (locally, in tests) nothing is sent.
+
+### Steps
+
+1. Created a Node.js / Express project on sentry.io and copied its DSN.
+2. Started the server with the DSN:
+
+   ```bash
+   SENTRY_DSN="<your DSN>" npm start
+   ```
+
+3. Caused a server error by breaking `config/blacklist.json` for a moment, then called an API with an api key (so the blacklist file is read):
+
+   ```bash
+   cp config/blacklist.json /tmp/blacklist.backup.json
+   echo '{ broken json' > config/blacklist.json
+   curl -i localhost:3000/health -H "x-api-key: anykey"
+   cp /tmp/blacklist.backup.json config/blacklist.json
+   ```
+
+### Output
+
+```
+X-Powered-By: Express
+Content-Type: application/json; charset=utf-8
+Content-Length: 33
+ETag: W/"21-u8tno/8IdqEY6PFcopkQe0syfE4"
+X-Response-Time: 412.509ms
+Date: Mon, 02 Nov 2026 18:19:31 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"Internal server error"}
+```
+
+- The API returned `500 Internal Server Error`, so `reportToSentry` sent the error to Sentry.
+- `X-Response-Time` is `412.509ms` instead of the usual 2–7ms, because the middleware waits for the event to reach Sentry before the response is sent.
+- In Sentry → Issues, the error shows as `SyntaxError: Expected property name or '}' in JSON` with tags `method: GET`, `url: /health`, `status: 500`.
+
+### Files changed
+
+- `src/middleware/observability.js`: new `reportToSentry` error middleware, starts Sentry when `SENTRY_DSN` is set and sends 5xx errors with the request details, then passes the error on to `errorHandler`
+- `src/app.js`: `reportToSentry` added just before `errorHandler`, so every error reaches Sentry first
+- `package.json`: added `@sentry/node`
